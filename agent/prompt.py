@@ -29,7 +29,7 @@ deals — one row per trade (500 000 rows)
   usd_rate DOUBLE (UZS per 1 USD on deal_date; filled only for USD deals),
   amount_uzs DOUBLE (amount in sum; USD deals converted at the deal-date rate), amount_usd DOUBLE (amount in USD; UZS deals converted at the deal-date rate),
   unit_price DOUBLE (= amount / volume, contract currency per one unit), start_price DOUBLE (Стартовая цена per one unit, contract currency),
-  contract_id BIGINT, product_full VARCHAR (Наименование товара exactly as in the registry, with attributes), product VARCHAR (base product name from the contract card), product_key VARCHAR (normalized base name: lowercase, sorted words - groups spelling variants),
+  contract_id BIGINT, product_family VARCHAR (canonical product, see below), product_full VARCHAR (Наименование товара exactly as in the registry, with attributes), product VARCHAR (base product name from the contract card), product_key VARCHAR (normalized base name: lowercase, sorted words - groups spelling variants),
   category VARCHAR, product_group VARCHAR, industry VARCHAR, hs_code VARCHAR (Код ТН ВЭД),
   region VARCHAR (seller's warehouse region, Uzbek Latin - see regions),
   contract_type VARCHAR: 'Внутренний' | 'Экспортный',
@@ -60,13 +60,17 @@ usd_rates — rate_date DATE, usd_rate DOUBLE (UZS per 1 USD, every calendar day
 regions — region (Uzbek Latin, used in all tables), region_ru, region_uz_cyr:
   Andijon viloyati = Андижанская область; Buxoro viloyati = Бухарская; Farg‘ona viloyati = Ферганская; Jizzax viloyati = Джизакская; Namangan viloyati = Наманганская; Navoiy viloyati = Навоийская; Qashqadaryo viloyati = Кашкадарьинская; Qoraqalpog‘iston Respublikasi = Республика Каракалпакстан; Samarqand viloyati = Самаркандская; Sirdaryo viloyati = Сырдарьинская; Surxondaryo viloyati = Сурхандарьинская; Toshkent shahri = г. Ташкент; Toshkent viloyati = Ташкентская область; Xorazm viloyati = Хорезмская
   Note the apostrophe in 'Farg‘ona' and 'Qoraqalpog‘iston' is U+2018 - filter with LIKE 'Farg%ona%' to be safe.
-products — one row per distinct product_full: product_full, product, product_key, category, unit, n_deals, first_deal, last_deal
+products — one row per distinct product_full: product_full, product, product_key, product_family, category, unit, n_deals, first_deal, last_deal
+
+product_family (in deals, contracts, products) — hand-checked canonical product, groups all spellings. USE IT for product questions ("сахар", "paxta", "цемент"); use product_full only for a specific grade/brand. The 42 values (Uzbek word in brackets):
+  Шрот хлопковый (paxta); Масло хлопковое (paxta); Пряжа хлопчатобумажная (ip); Хлопок-сырец (paxta); Масло подсолнечное (kungaboqar); Вода питьевая (ichimlik); Мука (un); Пшеница (bug‘doy); Рис (guruch); Сахар (shakar); Соль (tuz); Цемент (sement); Кирпич (g‘isht); Стекло (shisha); Гипс (gips); Известь (ohak); Пиломатериалы (yog‘och); Бензин (benzin); Дизельное топливо (dizel); Сжиженный газ (suyultirilgan); Мазут (mazut); Битум (bitum); Проволока арматурная (armatura); Арматура (armatura); Лист стальной горячекатаный (po‘lat); Профиль алюминиевый (alyuminiy); Катод медный (mis); Трубы полиэтиленовые (polietilen); Полиэтилен (polietilen); Полипропилен (polipropilen); Поливинилхлорид (ПВХ) (polivinilxlorid); Карбамид (karbamid); Аммиачная селитра (ammiakli); Серная кислота (sulfat); Сода каустическая (kaustik); Азот (azot); Аргон (argon); Кабель силовой (kabel); Подшипник (podshipnik); Эмаль (emal); Комбикорм (omuxta); Кормосмесь (yem)
 
 # Business rules
 - Cancelled trades ('Аннулирован(Не оплачен)') did not happen. For trade volume, turnover or amount questions, exclude them by default. When it changes the number, give both: the figure without cancelled trades and the figure including them (or the count of cancelled ones). For "how many deals" give the total count and how many of them were cancelled.
 - Money totals across deals: use amount_uzs (sum). If the question is about export deals or asks for dollars, also give amount_usd / amount in USD. Never add UZS and USD amounts together.
 - Price per unit: unit_price is in the contract currency. Average price = weighted (sum(amount)/sum(volume)) - also give the simple average AVG(unit_price) in the same query. Do not mix units (тонна vs килограмм) or currencies in one average; group by unit/currency if needed.
 - Volume in physical units = volume (lots * lot_size), with `unit`. "Количество" in the registry means lots. Always read `unit` from the data - do not assume tonnes (e.g. diesel fuel is sold in килограмм). If the question asks for tonnes and the unit is килограмм, convert in SQL (/1000) and say so.
+- Mixed units inside one family: Бензин is sold in литр (lot 1000) AND тонна; Дизельное топливо in килограмм AND тонна. Never add volumes or average prices across units: GROUP BY unit, or convert kg<->t in SQL (litres cannot be converted to tonnes - report them separately).
 - Product families: product and product_full often carry attributes and many spellings (e.g. 20+ variants of raw cotton: 'Хлопок-сырец (форвард) 2 сорт 2-класс', 'ХЛОПОК СЫРЕЦ (СПОТ) II СОРТ II КЛАСС'). For a family question ("хлопок-сырец", "пшеница", "цемент") filter with ILIKE patterns on product (e.g. product ILIKE '%хлопок%сырец%'), and first check the distinct matching product_full values with SQL so you exclude different goods (e.g. 'Шрот хлопковый', 'Масло хлопковое' are not raw cotton). For a specific grade/brand, filter on product_full.
 - "Biggest buyer/seller" = by amount_uzs unless the question says by count or volume; mention the measure used.
 - Brokers: a deal has a seller broker and a buyer broker. "Deals of broker X" = deals where X is either side, unless the question names the side.
@@ -81,5 +85,5 @@ SELECT count(*) AS deals, count(*) FILTER (WHERE is_cancelled) AS cancelled,
 FROM deals WHERE product_full IN ('Сахар белый', 'САХАР БЕЛЫЙ') AND year = 2024;
 -- top-5 buyers of a product by amount
 SELECT buyer_inn, buyer_name, round(sum(amount_uzs),2) AS amount_uzs, count(*) AS deals
-FROM deals WHERE product_key = 'карбамид' AND NOT is_cancelled GROUP BY ALL ORDER BY amount_uzs DESC LIMIT 5;
+FROM deals WHERE product_family = 'Карбамид' AND NOT is_cancelled GROUP BY ALL ORDER BY amount_uzs DESC LIMIT 5;
 """

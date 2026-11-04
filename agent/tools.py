@@ -84,7 +84,7 @@ def _catalog(kind):
             con = get_con()
             if kind == "product":
                 rows = con.execute(
-                    "SELECT product_full, product, category, unit, n_deals, first_deal, last_deal, search_key "
+                    "SELECT product_full, product, category, unit, n_deals, first_deal, last_deal, search_key, product_family "
                     "FROM products").fetchall()
             elif kind == "company":
                 rows = con.execute(
@@ -165,7 +165,7 @@ def _broker_row(r, s):
 
 
 def _product_row(r, s):
-    return {"product_full": r[0], "product": r[1], "category": r[2], "unit": r[3], "n_deals": r[4],
+    return {"product_full": r[0], "product": r[1], "product_family": r[8], "category": r[2], "unit": r[3], "n_deals": r[4],
             "first_deal": str(r[5]), "last_deal": str(r[6]), "score": s}
 
 

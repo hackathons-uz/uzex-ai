@@ -10,6 +10,7 @@ import time
 import duckdb
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from agent.families import UZ_NAMES, family_of  # noqa: E402
 from agent.textnorm import company_key, norm, product_key  # noqa: E402
 
 RAW = sys.argv[1] if len(sys.argv) > 1 else "data"
@@ -110,6 +111,7 @@ def main():
     add_key(con, "participants", "name", "search_key", company_key)
     add_key(con, "brokers", "name", "search_key", company_key)
     add_key(con, "contracts", "product", "product_key", product_key)
+    add_key(con, "contracts", "product", "product_family", family_of)
 
     con.execute(f"""
         CREATE TABLE deals AS
@@ -148,7 +150,7 @@ def main():
                CASE WHEN c.currency = 'USD' THEN d.amount ELSE d.amount / r.usd_rate END AS amount_usd,
                d.amount / NULLIF(d.lots * d.lot_size, 0) AS unit_price,
                d.start_price,
-               d.contract_id, d.product_full, c.product, c.product_key,
+               d.contract_id, d.product_full, c.product, c.product_key, c.product_family,
                c.category, c.product_group, c.industry, c.hs_code,
                d.region, d.contract_type, d.contract_form, d.status,
                d.status = 'Аннулирован(Не оплачен)' AS is_cancelled,
@@ -169,11 +171,16 @@ def main():
     con.execute("""
         CREATE TABLE products AS
         SELECT product_full, any_value(product) AS product, any_value(product_key) AS product_key,
+               any_value(product_family) AS product_family,
                any_value(category) AS category, any_value(unit) AS unit,
                count(*) AS n_deals, min(deal_date) AS first_deal, max(deal_date) AS last_deal
         FROM deals GROUP BY product_full
     """)
     add_key(con, "products", "product_full", "search_key", norm)
+    # search also by family name and its Uzbek synonyms (paxta, shakar, bug'doy ...)
+    fam = con.execute("SELECT DISTINCT product_family FROM products").fetchall()
+    con.executemany("UPDATE products SET search_key = search_key || ' ' || ? WHERE product_family = ?",
+                    [(norm(f + " " + UZ_NAMES.get(f, "")), f) for (f,) in fam])
 
     for t in ["deals", "contracts", "participants", "brokers", "usd_rates", "regions", "products"]:
         con.execute(f"COPY {t} TO '{OUT}/{t}.parquet' (FORMAT parquet, COMPRESSION zstd)")
@@ -189,6 +196,7 @@ def main():
         "deals with unknown seller": "SELECT count(*) FROM deals WHERE seller_name IS NULL",
         "deals with unknown buyer": "SELECT count(*) FROM deals WHERE buyer_name IS NULL",
         "contracts with unmapped region": "SELECT count(*) FROM contracts WHERE region IS NULL",
+        "contracts with no product family": "SELECT count(*) FROM contracts WHERE product_family IS NULL",
     }
     for label, q in checks.items():
         print(f"check: {label:32s} {con.execute(q).fetchone()[0]}")

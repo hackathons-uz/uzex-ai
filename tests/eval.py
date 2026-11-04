@@ -53,7 +53,7 @@ def run_case(case):
     exp = truth(case)
     t0 = time.time()
     try:
-        out = answer(case["q"])
+        out = answer(case["q"], case.get("history"))
     except Exception as e:
         out = {"answer": f"EXCEPTION {e}", "answerable": None, "steps": [], "verified": False}
     el = time.time() - t0

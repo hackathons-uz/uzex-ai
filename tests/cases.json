@@ -472,5 +472,69 @@
   "group": "trap",
   "q": "Сделка номер 999999999 — кто покупатель?",
   "answerable": false
+ },
+ {
+  "id": "followup_sugar_2025",
+  "group": "followup",
+  "history": [
+   {
+    "q": "Сколько сделок по сахару было в 2024 году?",
+    "a": "В 2024 году по сахару было 2 631 сделка, из них 212 аннулированы."
+   }
+  ],
+  "q": "А в 2025?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE product_family='Сахар' AND year=2025",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "followup_namangan_uz",
+  "group": "followup",
+  "history": [
+   {
+    "q": "2024-yilda Namangan viloyatida nechta bitim tuzilgan?",
+    "a": "2024-yilda Namangan viloyatida 13 580 ta bitim tuzilgan."
+   }
+  ],
+  "q": "2025-yilda-chi?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2025 AND region='Namangan viloyati'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "followup_top_buyer",
+  "group": "followup",
+  "history": [
+   {
+    "q": "Кто крупнейший покупатель карбамида по сумме за 2025 год?",
+    "a": "Крупнейший покупатель карбамида в 2025 году — \"Fo‘sor Qurilish\" MChJ."
+   }
+  ],
+  "q": "Сколько сделок у него было по карбамиду в 2025?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE product_family='Карбамид' AND year=2025 AND buyer_name='\"Fo‘sor Qurilish\" MChJ'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "multi_urea_2024",
+  "group": "multi",
+  "q": "Сколько сделок по карбамиду было в 2024 году и какая средняя цена за тонну?",
+  "truth_sql": "SELECT count(*) n, round(sum(amount) FILTER (WHERE NOT is_cancelled)/sum(volume) FILTER (WHERE NOT is_cancelled),2) w FROM deals WHERE product_family='Карбамид' AND year=2024",
+  "check": [
+   "n",
+   "w"
+  ]
+ },
+ {
+  "id": "multi_deal_uz",
+  "group": "multi",
+  "q": "350000-bitim qachon tuzilgan va qaysi viloyatda?",
+  "truth_sql": "SELECT deal_date, region FROM deals WHERE deal_id=350000",
+  "check": [
+   "region"
+  ]
  }
 ]

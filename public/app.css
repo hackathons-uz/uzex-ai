@@ -326,6 +326,91 @@ body:has(.is-chat) #edges { opacity: .3; }
 .hist-i[aria-current="true"]::before { background: var(--neon); }
 @media (hover: hover) and (pointer: fine) { .hist-i:hover { color: var(--white); background: var(--fill-06); } }
 
+/* низ панели: ссылки на страницы «О решении» / «О нас» */
+.hist-f { display: grid; padding: .5rem .5rem calc(.75rem + var(--safe-b)); box-shadow: 0 -1px 0 var(--line); }
+.hist-l {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%;
+  padding: .75rem; color: var(--text-3); font-size: .9375rem; font-weight: 500;
+  transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), transform var(--dur-press) var(--ease);
+}
+.hist-l:active { transform: scale(.98); }
+.hist-l svg { width: .75rem; height: .75rem; transition: transform var(--dur) var(--ease); }
+.hist-l[aria-current="page"] { color: var(--white); background: var(--fill-06); }
+.hist-l[aria-current="page"] svg { color: var(--neon); }
+@media (hover: hover) and (pointer: fine) {
+  .hist-l:hover { color: var(--white); background: var(--fill-06); }
+  .hist-l:hover svg { transform: translateX(.1875rem); color: var(--neon); }
+}
+
+/* =================== Страницы =================== */
+.page { display: none; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.is-page .page { display: block; }
+.is-page .stage { display: none; }
+body:has(.is-page) #edges { opacity: .3; }
+.page-in {
+  max-width: var(--col); margin: 0 auto;
+  padding: clamp(1.25rem, 5vh, 3.5rem) var(--pad) calc(4rem + var(--safe-b));
+  display: grid; gap: clamp(1.25rem, 3vh, 2rem);
+}
+.page-back {
+  justify-self: start; display: inline-flex; align-items: center; gap: .5rem;
+  font-size: .6875rem; color: var(--peri-l); padding: .375rem 0;
+  transition: color var(--dur-fast) var(--ease);
+}
+.page-back svg { width: .75rem; height: .75rem; transition: transform var(--dur) var(--ease); }
+@media (hover: hover) and (pointer: fine) {
+  .page-back:hover { color: var(--neon); }
+  .page-back:hover svg { transform: translateX(-.1875rem); }
+}
+.page-title { font-size: clamp(2.25rem, min(5.6vw, 9vh), 4.25rem); }
+.page-body { display: grid; gap: 1.25rem; }
+.page-body > .tag { justify-self: start; }
+.page-lead { font-size: var(--fs-lead); font-weight: 500; line-height: 1.32; letter-spacing: -.012em; max-width: 30ch; text-wrap: balance; }
+.page-body p { color: var(--text-2); font-size: 1.0625rem; line-height: 1.6; max-width: 62ch; }
+.page-body .page-lead { color: var(--white); }
+.page-h { font-size: var(--fs-h3); font-weight: 600; line-height: 1.2; letter-spacing: -.015em; margin-top: .75rem; }
+.page-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .25rem; }
+.page-list li {
+  display: grid; grid-template-columns: .4375rem minmax(0, 1fr); gap: .875rem; align-items: baseline;
+  padding: 1rem 1.125rem; background: var(--ink2); font-size: .9375rem; line-height: 1.45;
+}
+.page-list li::before { content: ""; width: .4375rem; height: .4375rem; background: var(--neon); transform: translateY(-.0625rem); }
+.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .25rem; }
+.team-i { display: grid; gap: 1.25rem; padding: 1.25rem; background: var(--ink2); }
+.team-i .pix { --w: 4; --c: .5rem; --g: .125rem; }
+.team-n { font-weight: 600; font-size: 1.0625rem; line-height: 1.2; }
+.team-r { font-size: .6875rem; margin-top: .375rem; }
+.page-body .page-foot { font-size: .6875rem; color: var(--peri-l); }
+@media (max-width: 760px) { body:has(.is-page) #edges { opacity: 0; } }
+
+/* ---------- карточки команды: три в ряд, фото сверху ---------- */
+.page-in.wide { max-width: 78rem; }
+.page-in.wide > .page-back, .page-in.wide > .page-title { max-width: var(--col); }
+.page-in.wide .page-body > p { max-width: 62ch; }
+.team-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem; align-items: stretch; margin-top: .5rem; }
+.mem { display: grid; grid-template-rows: auto 1fr; background: var(--ink2); min-width: 0; }
+.mem-ph { position: relative; aspect-ratio: 1; width: 100%; background: var(--ink3); overflow: hidden; }
+.mem-ph img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.mem-ph.on img { opacity: 1; }
+.mem-px { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.mem-b { display: grid; align-content: start; gap: 1rem; min-width: 0; padding: 1.25rem 1.25rem 1.5rem; }
+.mem-n { font-size: var(--fs-h3); font-weight: 600; line-height: 1.15; letter-spacing: -.015em; text-wrap: balance; }
+.mem-r { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-top: -.375rem; }
+.mem-r .mono { font-size: .6875rem; }
+.page-body .mem-pts { list-style: none; margin: 0; padding: 0; display: grid; gap: .625rem; }
+.mem-pts li { display: grid; grid-template-columns: .375rem minmax(0, 1fr); gap: .75rem; align-items: baseline; color: var(--text-2); font-size: .875rem; line-height: 1.55; }
+.mem-pts li::before { content: ""; width: .375rem; height: .375rem; background: var(--neon); transform: translateY(-.0625rem); }
+.mem-k { display: grid; gap: .5rem; padding-top: .875rem; box-shadow: 0 -1px 0 var(--line); }
+.mem-k .mono { font-size: .6875rem; }
+.page-body .mem-k p { font-size: .875rem; line-height: 1.5; }
+.chips { display: flex; flex-wrap: wrap; gap: .25rem; }
+.chips .tag { font-size: .6875rem; padding: .375rem .5rem; white-space: normal; text-align: left; }
+@media (max-width: 900px) {
+  .team-grid { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+  .mem-ph { max-height: 28rem; }
+}
+
+
 .hist-empty { padding: 2.5rem 1.25rem; display: grid; gap: 1rem; justify-items: start; }
 .hist-empty .pix { --w: 5; --c: .5rem; }
 .hist-empty p { color: var(--peri-l); font-size: .9375rem; max-width: 22ch; }
@@ -391,6 +476,7 @@ body:has(.is-chat) #edges { opacity: .3; }
 /* =================== Меньше движения =================== */
 @media (prefers-reduced-motion: reduce) {
   .hist, .hist.open { transition: opacity .2s ease, visibility 0s; transform: none; opacity: 0; }
+  .hist-l:active { transform: none; }
   .hist.open { opacity: 1; }
   .demo, .demo.open { transform: none; }
   .lang-k, .send svg, .send > span { transition-property: opacity; }
@@ -401,6 +487,25 @@ body:has(.is-chat) #edges { opacity: .3; }
   .ib:active, .send:active, .demo-btn:active, .hist-new:active { transform: none; }
 }
 
+/* интро команды: зелёная подложка на всю ширину контейнера */
+.page-in.wide .page-body > p.team-intro, .page-body .team-intro { max-width: none; background: var(--neon); color: var(--ink); padding: 1.25rem 1.5rem; }
+.page-body .page-foot.made { justify-self: center; margin-top: 1rem; }
+.heart svg { display: block; fill: currentColor; shape-rendering: crispEdges; }
+.ib.copied { color: var(--neon); }
+
+/* DEVTONES: пиксельное слово с луп-анимацией (волна слева направо) */
+.page-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1.5rem; }
+.px-word { margin: 0; }
+.px-grid { --c: calc(var(--h, 4rem) / 8.2); display: grid; grid-template-columns: repeat(var(--cols), var(--c)); gap: calc(var(--c) / 5); width: max-content; }
+.px-grid i { display: block; width: var(--c); height: var(--c); }
+.px-grid i.on { background: var(--neon); animation: pxw 3.2s var(--ease) infinite; animation-delay: calc(var(--x) * 45ms + var(--y) * 25ms); }
+@keyframes pxw { 0%, 70%, 100% { background: var(--neon); transform: none; } 78% { background: var(--white); transform: scale(.7); } 86% { background: var(--mint); transform: none; } }
+@media (prefers-reduced-motion: reduce) { .px-grid i.on { animation: none; } }
+@media (max-width: 760px) { .px-grid { --c: min(calc(var(--h, 4rem) / 8.2), calc((100vw - 3rem) / 56)); } }
+.rot { position: relative; display: inline-block; white-space: nowrap; vertical-align: top; }
+.rot-cv { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+.q-title .pl-t { white-space: nowrap; }
+.hist-t { flex: 0 0 auto; margin-left: auto; padding-left: .75rem; font-size: .6875rem; color: var(--peri-l); white-space: nowrap; }
 /* =========================================================
    Доказательства ответа: значки, источники (шаги агента), SQL и таблицы
    ========================================================= */
@@ -456,3 +561,4 @@ details.ev[data-only="16"] .ev-s[data-i="16"] { display: block; }
 details.ev[data-only="17"] .ev-s[data-i="17"] { display: block; }
 details.ev[data-only="18"] .ev-s[data-i="18"] { display: block; }
 details.ev[data-only="19"] .ev-s[data-i="19"] { display: block; }
+

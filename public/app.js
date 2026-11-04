@@ -36,6 +36,8 @@ const BM = {
   retry: ['...####...','..#....#.#','.#......##','#......###','#.........','#.........','#........#','.#......#.','..#....#..','...####...'],
   check: ['..........','.........#','........##','.......##.','#.....##..','##...##...','.##.##....','..###.....','...#......','..........'],
   heart: ['.##.##.','#######','#######','.#####.','..###..','...#...'],
+  back:  ['....##....','...##.....','..##......','.##.......','##########','##########','.##.......','..##......','...##.....','....##....'],
+  chev:  ['..##....','...##...','....##..','.....##.','.....##.','....##..','...##...','..##....'],
   doc:   ['######..','#....##.','#.....##','#.##...#','#......#','#.####.#','#......#','#.####.#','#......#','########'],
 };
 function svg(name) {
@@ -55,7 +57,7 @@ function paintIcons(root = document) { root.querySelectorAll('[data-icon]').forE
 /* ---------- тексты ---------- */
 const I18N = {
   ru: {
-    t1: 'Спросите', t2: 'про сделки',
+    t1: 'Спросите', t2: 'про {w}', rw: ['сделки', 'цены', 'объёмы', 'брокеров', 'покупателей', 'продавцов', 'контракты', 'экспорт', 'регионы'],
     history: 'История', newChat: 'Новый чат', close: 'Закрыть', lang: 'Язык интерфейса',
     ask: 'Ваш вопрос', send: 'Отправить', stop: 'Остановить ответ',
     tabHint: 'подставить вопрос', follow: 'Задайте уточняющий вопрос',
@@ -76,9 +78,51 @@ const I18N = {
       'Средняя цена тонны цемента в 2025 году',
       'Сколько сделок аннулировано в 2026 году?',
     ],
+    aboutNav: 'О проекте', aboutT: 'О решении', teamT: 'О нас', toChat: 'К чату',
+    about: {
+      h: 'Агент по реестру биржевых сделок',
+      p: ['UZEX AI отвечает на вопросы о 500 000 сделках биржи с января 2022 по октябрь 2026 года — на русском и узбекском, строго по данным реестра.',
+          'Модель не придумывает числа. Она находит товары, компании и брокеров, пишет SQL-запрос к реестру, а код сверяет каждое число в ответе с результатами запросов. Если в данных ответа нет, агент так и говорит.'],
+      listH: 'Что умеет',
+      list: ['Считает сделки, суммы, объёмы, цены и доли', 'Находит компании и товары в любом написании: кириллица, латиница, узбекский', 'Показывает, на чём основан ответ: SQL-запросы и строки данных', 'Отвечает на языке вопроса: русский или узбекский', 'Говорит «нет в данных» вместо догадок', 'История чатов хранится в браузере'],
+    },
+    team: {
+      h: 'Команда devtones',
+      p: 'Мы команда из трёх человек: AI/ML-инженер, frontend-разработчик и продуктовый дизайнер. Вместе закрываем весь цикл от модели и бэкенда до интерфейса и UX. Двое из нас работают в одной продуктовой компании (BILLZ), поэтому привыкли быстро доводить идеи до рабочего релиза.',
+      stackL: 'Стек', eduL: 'Образование', photo: 'Фото',
+      members: [
+        { n: 'Аброрхон Озодходжаев', img: 'abror', role: 'Product Design', exp: 'с сентября 2022',
+          pts: [
+            'Middle Product Designer в BILLZ, retail SaaS/POS-платформе для стран СНГ. Единственный продуктовый дизайнер в компании.',
+            'Ведёт дизайн нескольких продуктов: BILLZ 2.0, BILLZ Grocery и BILLZ Lite. Проектирует сложные B2B-флоу: интеграции с оборудованием (весы), подписки и тарифы, онбординг и product tour, финансовые операции, платёжные решения.',
+            'Строит и развивает дизайн-систему (цветовые и семантические токены), делает UX-исследования, прототипы и спецификации для разработки.',
+          ],
+          stack: ['Figma', 'Дизайн-системы', 'Прототипирование', 'UX-research', 'Handoff разработчикам'],
+          edu: 'BSc Computer Science and Software Engineering, Inha University in Tashkent, выпуск 2026. Языки: узбекский, русский, английский (IELTS 7.0).' },
+        { n: 'Бобохон Абдурахмонов', img: 'bobokhon', role: 'AI/ML', exp: 'около 3 лет практического опыта',
+          pts: [
+            'ТН ВЭД / HS-классификация для Государственного таможенного комитета РУз: end-to-end система на векторном поиске и LLM, точность 83%, ~60 млн записей, самообучение на обратной связи экспертов. По теме опубликована статья на TechRxiv.',
+            'AI-сервис для выявления запрещённых товаров (LLM + экспертные правила), который используется в таможенной инфраструктуре.',
+            'Newo.ai: Lead Solution Engineer на крупнейшем production-проекте, мультиагентный голосовой AI, ~1 млн сессий в месяц.',
+            'RAG-системы: чатбот для образовательной платформы Menta (FastAPI, Qdrant, LangGraph); юридический RAG-бот Lexora (40 000+ документов, 400+ пользователей).',
+            'Twistly (Lincoln Labs): LLM-пайплайны для AI-аддина PowerPoint с 500 000+ пользователей, ускорение генерации до 2 раз.',
+          ],
+          stack: ['Python', 'PyTorch', 'LangChain / LangGraph', 'RAG: Qdrant, FAISS, reranking', 'Voice AI: STT/TTS, voice-to-voice, SIP/IVR', 'Мультиагентные системы', 'FastAPI', 'PostgreSQL', 'Redis', 'Docker', 'GCP / AWS', 'Telegram-боты'] },
+        { n: 'Асилбек Низамов', img: 'asilbek', role: 'Frontend', exp: '2+ года коммерческого опыта',
+          pts: [
+            'BILLZ (B2B SaaS), с июля 2024: разрабатывает веб-приложение для розничного бизнеса на React и TypeScript: новые фичи, клиентские запросы, хотфиксы, рефакторинг легаси. Участвует почти во всех релизах.',
+            'Сделал frontend отчёта по эффективности промо-акций, который раскатили на всех клиентов. Интеграция оплаты тарифов через Rahmat, поддержка нескольких штрихкодов у товара, модуль плановых показателей продаж.',
+            'Работает с большими таблицами и формами: AG Grid, TanStack Table/Virtual/Query, react-hook-form + zod. Пишет тесты (Vitest, Jest, React Testing Library). Промо-сайт на Next.js: новые страницы, SEO, маркетинговые интеграции.',
+            'Ежедневно использует ИИ-инструменты в разработке: делегирует рутину и ускоряет прототипирование, поэтому собирает рабочий прототип за 48 часов.',
+          ],
+          stack: ['React', 'TypeScript', 'Next.js', 'Zustand', 'TanStack Query', 'REST API', 'WebSocket', 'Git', 'Agile / Scrum'],
+          edu: 'Inha University in Tashkent (SOCIE), выпуск 2026, грант; семестр по обмену в Корее.' },
+      ],
+      foot: 'Ташкент · U-ENTER · 7–8 ноября 2026',
+    },
   },
   uz: {
-    t1: 'Bitimlar haqida', t2: 'soʻrang',
+    t1: '{w} haqida', t2: 'soʻrang', rw: ['Bitimlar', 'Narxlar', 'Hajmlar', 'Brokerlar', 'Xaridorlar', 'Sotuvchilar', 'Shartnomalar', 'Eksport', 'Viloyatlar'],
     history: 'Tarix', newChat: 'Yangi chat', close: 'Yopish', lang: 'Interfeys tili',
     ask: 'Savolingiz', send: 'Yuborish', stop: 'Javobni toʻxtatish',
     tabHint: 'savolni qoʻyish', follow: 'Aniqlashtiruvchi savol bering',
@@ -99,6 +143,48 @@ const I18N = {
       '2023-yilda eksport bitimlari jami necha dollar boʻlgan?',
       '2024-yilda Namangan viloyatida nechta bitim tuzilgan?',
     ],
+    aboutNav: 'Loyiha haqida', aboutT: 'Yechim haqida', teamT: 'Biz haqimizda', toChat: 'Chatga',
+    about: {
+      h: 'Birja bitimlari reyestri boʻyicha agent',
+      p: ['UZEX AI 2022-yil yanvaridan 2026-yil oktyabrigacha boʻlgan 500 000 ta birja bitimi haqidagi savollarga rus va oʻzbek tillarida, faqat reyestr maʼlumotlari asosida javob beradi.',
+          'Model raqamlarni oʻylab topmaydi. U tovarlar, kompaniyalar va brokerlarni topadi, reyestrga SQL-soʻrov yozadi, kod esa javobdagi har bir raqamni soʻrov natijalari bilan solishtiradi. Maʼlumotlarda javob boʻlmasa, agent buni ochiq aytadi.'],
+      listH: 'Nimalar qila oladi',
+      list: ['Bitimlar soni, summalar, hajmlar, narxlar va ulushlarni hisoblaydi', 'Kompaniya va tovarlarni istalgan yozuvda topadi: kirill, lotin, rus tili', 'Javob nimaga asoslanganini koʻrsatadi: SQL-soʻrovlar va maʼlumot qatorlari', 'Savol tilida javob beradi: rus yoki oʻzbek', 'Taxmin qilmaydi, “maʼlumotlarda yoʻq” deydi', 'Suhbatlar tarixi brauzerda saqlanadi'],
+    },
+    team: {
+      h: 'devtones jamoasi',
+      p: 'Biz uch kishilik jamoamiz: AI/ML muhandisi, frontend-dasturchi va mahsulot dizayneri. Birgalikda modeldan va backenddan tortib interfeys va UXgacha boʻlgan butun siklni qamrab olamiz. Ikkimiz bitta mahsulot kompaniyasida (BILLZ) ishlaymiz, shuning uchun gʻoyalarni tezda ishlaydigan relizgacha yetkazishga odatlanganmiz.',
+      stackL: 'Stek', eduL: 'Taʼlim', photo: 'Surat',
+      members: [
+        { n: 'Abrorkhon Ozodkhujaev', img: 'abror', role: 'Product Design', exp: '2022-yil sentyabridan',
+          pts: [
+            'BILLZda Middle Product Designer: MDH mamlakatlari uchun retail SaaS/POS platforma. Kompaniyadagi yagona mahsulot dizayneri.',
+            'Bir nechta mahsulot dizaynini olib boradi: BILLZ 2.0, BILLZ Grocery va BILLZ Lite. Murakkab B2B-flowlarni loyihalaydi: uskunalar (tarozi) bilan integratsiya, obunalar va tariflar, onboarding va product tour, moliyaviy operatsiyalar, toʻlov yechimlari.',
+            'Dizayn-tizimni quradi va rivojlantiradi (rang va semantik tokenlar), UX-tadqiqotlar, prototiplar va ishlab chiqish uchun spetsifikatsiyalar tayyorlaydi.',
+          ],
+          stack: ['Figma', 'Dizayn-tizimlar', 'Prototiplash', 'UX-research', 'Dasturchilarga handoff'],
+          edu: 'BSc Computer Science and Software Engineering, Inha University in Tashkent, 2026-yil bitiruvchisi. Tillar: oʻzbek, rus, ingliz (IELTS 7.0).' },
+        { n: 'Boboxon Abduraxmonov', img: 'bobokhon', role: 'AI/ML', exp: 'qariyb 3 yillik amaliy tajriba',
+          pts: [
+            'OʻzR Davlat bojxona qoʻmitasi uchun TIF TN / HS-tasniflash: vektor qidiruv va LLMga asoslangan end-to-end tizim, aniqlik 83%, ~60 mln yozuv, ekspertlar fikri asosida oʻz-oʻzini oʻqitish. Mavzu boʻyicha TechRxivda maqola chop etilgan.',
+            'Taqiqlangan tovarlarni aniqlash uchun AI-servis (LLM + ekspert qoidalari), bojxona infratuzilmasida qoʻllaniladi.',
+            'Newo.ai: eng yirik production-loyihada Lead Solution Engineer, multiagentli ovozli AI, oyiga ~1 mln sessiya.',
+            'RAG-tizimlar: Menta taʼlim platformasi uchun chatbot (FastAPI, Qdrant, LangGraph); Lexora yuridik RAG-boti (40 000+ hujjat, 400+ foydalanuvchi).',
+            'Twistly (Lincoln Labs): 500 000+ foydalanuvchili PowerPoint AI-qoʻshimchasi uchun LLM-paypleynlar, generatsiyani 2 baravargacha tezlashtirish.',
+          ],
+          stack: ['Python', 'PyTorch', 'LangChain / LangGraph', 'RAG: Qdrant, FAISS, reranking', 'Voice AI: STT/TTS, voice-to-voice, SIP/IVR', 'Multiagent tizimlar', 'FastAPI', 'PostgreSQL', 'Redis', 'Docker', 'GCP / AWS', 'Telegram-botlar'] },
+        { n: 'Asilbek Nizamov', img: 'asilbek', role: 'Frontend', exp: '2+ yillik tijoriy tajriba',
+          pts: [
+            'BILLZ (B2B SaaS), 2024-yil iyulidan: chakana savdo uchun React va TypeScriptda veb-ilova ishlab chiqadi: yangi funksiyalar, mijozlar soʻrovlari, hotfikslar, legacy-kodni refaktoring qilish. Deyarli barcha relizlarda ishtirok etadi.',
+            'Promo-aksiyalar samaradorligi hisobotining frontendini yaratdi, u barcha mijozlarga joriy etildi. Tariflar uchun Rahmat orqali toʻlov integratsiyasi, tovarda bir nechta shtrix-kod, rejali savdo koʻrsatkichlari moduli.',
+            'Katta jadvallar va formalar bilan ishlaydi: AG Grid, TanStack Table/Virtual/Query, react-hook-form + zod. Testlar yozadi (Vitest, Jest, React Testing Library). Next.jsdagi promo-sayt: yangi sahifalar, SEO, marketing integratsiyalari.',
+            'Ishlab chiqishda har kuni AI-vositalardan foydalanadi: rutinani topshiradi va prototiplashni tezlashtiradi, shuning uchun ishlaydigan prototipni 48 soatda yigʻadi.',
+          ],
+          stack: ['React', 'TypeScript', 'Next.js', 'Zustand', 'TanStack Query', 'REST API', 'WebSocket', 'Git', 'Agile / Scrum'],
+          edu: 'Inha University in Tashkent (SOCIE), 2026-yil bitiruvchisi, grant; Koreyada almashinuv semestri.' },
+      ],
+      foot: 'Toshkent · U-ENTER · 7–8-noyabr 2026',
+    },
   },
 };
 
@@ -450,16 +536,15 @@ function stepHTML(st, i, t) {
     `<pre class="ev-sql">${esc(st.query || '')}</pre>` +
     (r.error ? `<p class="ev-err">${esc(r.error)}</p>` : tableHTML(r.columns || [], r.rows || [], 20)) + `</div>`;
 }
-function ansT(d) { return I18N[d && String(d.language || '').startsWith('uz') ? 'uz' : 'ru']; }
 function addTail(m, rec, instant) {
-  const d = rec.data, t = ansT(d);
+  const d = rec.data, t = T();
   const steps = (d.steps || []).filter(st => st.tool !== 'guard');
   const badge = !d.answerable ? `<span class="tag ev-b ev-no">${t.noData}</span>`
     : d.verified ? `<span class="tag ev-b ev-ok">✓ ${t.verified}</span>` : `<span class="tag ev-b ev-warn">${t.unverified}</span>`;
   const tail = document.createElement('div'); tail.className = 'm-tail' + (instant ? ' on' : '');
   tail.innerHTML =
     `<div class="m-src">${badge}` +
-    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" aria-pressed="false" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
+    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
     `<span class="tag tag-o ev-time mono">${d.elapsed_s} ${t.sec}</span></div>` +
     (d.assumptions && d.assumptions.length ? `<p class="m-asm"><span class="mono">${t.assumptions}:</span> ${esc(d.assumptions.join('; '))}</p>` : '') +
     (steps.length ? `<details class="ev"><summary class="mono">${t.how} · ${steps.length}</summary>${steps.map((st, i) => stepHTML(st, i, t)).join('')}</details>` : '') +
@@ -868,16 +953,14 @@ threadIn.addEventListener('click', e => {
   const rec = S.msgs[idx];
   if (b.dataset.act === 'ev') {
     const det = m.querySelector('details.ev'); if (!det) return;
-    if (det.open && det.dataset.only === b.dataset.i) { det.open = false; return; }   // тот же источник ещё раз — свернуть
-    showOnly(det, b.dataset.i);
     det.open = true;
     const target = det.querySelector(`.ev-s[data-i="${b.dataset.i}"]`);
     if (target) { target.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'nearest' }); target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); }
   } else if (b.dataset.act === 'copy') {
     const txt = rec && rec.data ? rec.data.answer + (rec.data.assumptions && rec.data.assumptions.length ? '\n\n' + T().assumptions + ': ' + rec.data.assumptions.join('; ') : '') : '';
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}).finally(() => {
-      b.innerHTML = svg('check'); b.classList.add('copied'); b.setAttribute('aria-label', T().copied);
-      setTimeout(() => { b.innerHTML = svg('copy'); b.classList.remove('copied'); b.setAttribute('aria-label', T().copy); }, 1400);
+      b.innerHTML = `<span data-icon="check">${svg('check')}</span>`; b.classList.add('copied'); b.setAttribute('aria-label', T().copied);
+      setTimeout(() => { b.innerHTML = `<span data-icon="copy">${svg('copy')}</span>`; b.classList.remove('copied'); b.setAttribute('aria-label', T().copy); }, 1400);
     });
   } else if (b.dataset.act === 'retry' || b.dataset.act === 'again') {
     if (S.busy || !rec) return;
@@ -888,25 +971,15 @@ threadIn.addEventListener('click', e => {
   }
 });
 
-/* источники: чип показывает только свой шаг, «Как получен ответ» — все шаги */
-function showOnly(det, i) {
-  if (i === null || i === undefined) delete det.dataset.only; else det.dataset.only = i;
-  det.closest('.m').querySelectorAll('.ev-chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.i === i)));
-}
-threadIn.addEventListener('click', e => {
-  const sum = e.target.closest('details.ev > summary'); if (!sum) return;
-  const det = sum.parentElement;
-  if (det.open && det.dataset.only !== undefined) { e.preventDefault(); showOnly(det, null); }  // был один шаг — показать все
-  else if (!det.open) showOnly(det, null);                                                      // открыть все
-});
-threadIn.addEventListener('toggle', e => {
-  const det = e.target;
-  if (det instanceof HTMLDetailsElement && det.classList.contains('ev') && !det.open) showOnly(det, null);
-}, true);
-
 /* =========================================================
    История чатов
    ========================================================= */
+function histTime(iso, g) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  if (g !== 'earlier') return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return S.lang === 'uz' ? `${d.getDate()}-${['yan','fev','mar','apr','may','iyn','iyl','avg','sen','okt','noy','dek'][d.getMonth()]}`
+                         : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+}
 function renderHist() {
   const t = T();
   if (!CHATS.length) {
@@ -922,7 +995,7 @@ function renderHist() {
   });
   histList.innerHTML = ['today', 'yday', 'earlier'].filter(g => grp[g].length).map(g =>
     `<h3 class="hist-g mono">${t[g]}</h3>` +
-    grp[g].map(c => `<button class="hist-i" type="button" data-h="${esc(c.id)}" aria-current="${S.chat === c.id}"><span>${esc(c.title)}</span></button>`).join('')
+    grp[g].map(c => `<button class="hist-i" type="button" data-h="${esc(c.id)}" aria-current="${S.chat === c.id}"><span>${esc(c.title)}</span><time class="hist-t mono">${esc(histTime(c.updated_at, g))}</time></button>`).join('')
   ).join('');
 }
 let histReturn = null;
@@ -942,8 +1015,129 @@ function closeHist(focusBack = true) {
 }
 histBtns.forEach(b => b.addEventListener('click', () => hist.classList.contains('open') ? closeHist() : openHist()));
 $('#histClose').addEventListener('click', () => closeHist());
+
+/* ---------- Страницы «О решении» / «О нас» (#about, #team) ---------- */
+const page = $('#page'), pageBody = $('#pageBody'), pageT = $('#pageT');
+const PAGES = ['about', 'team'], BASE_TITLE = document.title;
+const AVA = [ // пиксельные «аватары» 4×4
+  ['n', '', 'n', '', '', 'n', 'n', '', 'b', '', '', 'b', '', 'b', 'b', ''],
+  ['b', 'b', '', '', 'b', 'n', 'n', '', '', 'n', 'n', 'b', '', '', 'b', 'b'],
+  ['p', '', '', 'p', '', 'n', 'n', '', '', 'n', 'n', '', 'p', '', '', 'p'],
+];
+let route = '';
+// пиксельный шрифт 5×7 для «DEVTONES» на странице команды
+const PXF = {
+  D: ['####.','#...#','#...#','#...#','#...#','#...#','####.'],
+  E: ['#####','#....','#....','####.','#....','#....','#####'],
+  V: ['#...#','#...#','#...#','#...#','#...#','.#.#.','..#..'],
+  T: ['#####','..#..','..#..','..#..','..#..','..#..','..#..'],
+  O: ['.###.','#...#','#...#','#...#','#...#','#...#','.###.'],
+  N: ['#...#','##..#','#.#.#','#.#.#','#..##','#...#','#...#'],
+  S: ['.####','#....','#....','.###.','....#','....#','####.'],
+};
+function pxWord(w) {
+  const cols = w.length * 6 - 1; let h = '';
+  for (let y = 0; y < 7; y++) for (let x = 0; x < cols; x++) {
+    const ch = PXF[w[Math.floor(x / 6)]], cx = x % 6;
+    const on = cx < 5 && ch[y][cx] === '#';
+    h += on ? `<i class="on" style="--x:${x};--y:${y}"></i>` : '<i></i>';
+  }
+  return `<span class="px-grid" aria-hidden="true" style="--cols:${cols}">${h}</span>`;
+}
+function fitPx() {
+  const w = document.querySelector('.page-row .px-word'), pl = pageTitle.querySelector('.pl');
+  if (w && pl) w.style.setProperty('--h', pl.getBoundingClientRect().height + 'px');
+}
+addEventListener('resize', fitPx);
+function renderPage() {
+  if (!route) return;
+  const t = T(), a = t[route];
+  pageT.textContent = t[route === 'about' ? 'aboutT' : 'teamT'];
+  pageBody.innerHTML = route === 'about'
+    ? `<p class="page-lead">${esc(a.h)}</p>${a.p.map(x => `<p>${esc(x)}</p>`).join('')}<h2 class="page-h">${esc(a.listH)}</h2><ul class="page-list">${a.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
+    : ``+
+      `<div class="team-grid">` + a.members.map(m => `<article class="mem">
+        <div class="mem-ph"><img src="img/${m.img}.webp" width="800" height="800" alt="${a.photo}: ${esc(m.n)}" decoding="async"></div>
+        <div class="mem-b">
+          <h2 class="mem-n">${esc(m.n)}</h2>
+          <p class="mem-r"><span class="tag bg-n">${esc(m.role)}</span><span class="mono">${esc(m.exp)}</span></p>
+          <ul class="mem-pts">${m.pts.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+          <div class="mem-k"><span class="mono">${a.stackL}</span><div class="chips">${m.stack.map(x => `<span class="tag tag-f">${esc(x)}</span>`).join('')}</div></div>
+          ${m.edu ? `<div class="mem-k"><span class="mono">${a.eduL}</span><p>${esc(m.edu)}</p></div>` : ''}
+        </div>
+      </article>`).join('') + `</div>` +
+      `<p class="page-foot made mono">Made with <a class="egg" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer" aria-label="love"><span class="heart">${svg('heart')}</span></a></p>`;
+  page.querySelector('.page-in').classList.toggle('wide', route === 'team');
+  // DEVTONES стоит в одном ряду с заголовком страницы
+  let row = pageTitle.parentElement;
+  if (!row.classList.contains('page-row')) { row = document.createElement('div'); row.className = 'page-row'; pageTitle.before(row); row.append(pageTitle); }
+  row.querySelector('.px-word')?.remove();
+  if (route === 'team') { row.insertAdjacentHTML('beforeend', `<h2 class="px-word" aria-label="devtones">${pxWord('DEVTONES')}</h2>`); fitPx(); }
+  document.querySelectorAll('[data-page]').forEach(l => l.setAttribute('aria-current', l.dataset.page === route ? 'page' : 'false'));
+}
+function enterPage() {
+  const pl = page.querySelector('.pl');
+  page.classList.add('rs'); pl.classList.remove('on'); void page.offsetWidth; page.classList.remove('rs');
+  if (RM) { pl.classList.add('on'); return; }
+  requestAnimationFrame(() => {
+    const fs = parseFloat(getComputedStyle(pageT.closest('.q-title')).fontSize) || 56;
+    try { assemble([{ el: pl, kind: 'pl', cell: Math.max(6, Math.round(fs / 7 * (LOW ? 1.4 : 1))), delay: 0, sweep: 160, dur: [270, 90], spread: [20, 70], done: () => pl.classList.add('on') }]); }
+    catch (err) { pl.classList.add('on'); }
+    [...pageBody.children].forEach((el, i) => el.animate(
+      [{ opacity: 0, transform: 'translateY(.5rem)' }, { opacity: 1, transform: 'none' }],
+      { duration: 320, delay: 140 + i * 45, easing: OUT, fill: 'backwards' }));
+    pageBody.querySelectorAll('.mem-ph').forEach((ph, i) => pixelReveal(ph, 220 + i * 120));
+  });
+}
+/* Фото проявляется из крупных пикселей: 6 → 10 → 18 → 32 → 56 клеток, затем чёткое */
+function pixelReveal(ph, delay) {
+  const img = ph.querySelector('img'), my = PX.gen;
+  if (RM) { ph.classList.add('on'); return; }
+  const go = () => {
+    if (my !== PX.gen || !img.isConnected) return;
+    const w = ph.clientWidth, h = ph.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    if (!w || !h) { ph.classList.add('on'); return; }
+    const cv = document.createElement('canvas'); cv.className = 'mem-px'; cv.setAttribute('aria-hidden', 'true');
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); ph.append(cv);
+    const c = cv.getContext('2d'), off = document.createElement('canvas'), o = off.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    const steps = [6, 10, 18, 32, 56];
+    let k = 0;
+    const draw = () => {
+      if (!cv.isConnected) return;
+      if (k >= steps.length) { ph.classList.add('on'); setTimeout(() => cv.remove(), 160); return; }
+      const n = steps[k++];
+      off.width = n; off.height = n; o.drawImage(img, 0, 0, n, n);
+      c.drawImage(off, 0, 0, n, n, 0, 0, cv.width, cv.height);
+      setTimeout(draw, 75);
+    };
+    draw();
+  };
+  const start = () => setTimeout(go, delay);
+  (img.decode ? img.decode() : Promise.resolve()).then(start, () => ph.classList.add('on'));
+}
+function applyRoute() {
+  const r = location.hash.slice(1);
+  const next = PAGES.includes(r) ? r : '';
+  if (next === route) return;
+  route = next;
+  closeHist(false);
+  if (route) {
+    pxCancel(); clearTimeout(enterT); phStop();
+    app.classList.add('is-page'); page.scrollTop = 0;
+    renderPage(); enterPage();
+    document.title = `${T()[route === 'about' ? 'aboutT' : 'teamT']} · UZEX AI`;
+  } else {
+    app.classList.remove('is-page');
+    document.querySelectorAll('[data-page]').forEach(l => l.setAttribute('aria-current', 'false'));
+    document.title = BASE_TITLE;
+    if (S.view === 'landing') replayHero(true);
+  }
+}
+function leavePage() { if (route) { location.hash = ''; applyRoute(); } }
+addEventListener('hashchange', applyRoute);
 scrim.addEventListener('click', () => closeHist());
-const newChat = () => { closeHist(false); goLanding(true); q.focus({ preventScroll: true }); };
+const newChat = () => { leavePage(); closeHist(false); goLanding(true); q.focus({ preventScroll: true }); };
 $('#newBtn').addEventListener('click', newChat);
 $('#histNew').addEventListener('click', newChat);
 $('#home').addEventListener('click', e => { e.preventDefault(); newChat(); });
@@ -980,21 +1174,107 @@ histList.addEventListener('click', e => {
 })();
 
 /* =========================================================
+   Сменяемое слово в заголовке: «Спросите про {биржу / торги / …}»
+   Слово рассыпается в пиксели цвета плашки, плашка меняет ширину, новое слово проявляется из пикселей.
+   ========================================================= */
+let rotI = 0, rotBusy = false;
+function rotTick() {
+  const el = hero.querySelector('.rot');
+  if (!el || rotBusy || S.view !== 'landing' || document.hidden) return;
+  if ([...hero.querySelectorAll('.pl')].some(p => !p.classList.contains('on'))) return;
+  const ws = T().rw; rotI = (rotI + 1) % ws.length;
+  swapWord(el, ws[rotI]);
+}
+setInterval(rotTick, 2800);
+// самое длинное слово из списка должно влезать в строку: при нехватке места заголовок чуть уменьшается
+function fitHero() {
+  const qt = hero.querySelector('.q-title'), el = hero.querySelector('.rot');
+  if (!qt || !el) return;
+  qt.style.fontSize = '';
+  const avail = hero.clientWidth; if (!avail) return;
+  const probe = el.cloneNode(false); probe.style.cssText = 'position:absolute;visibility:hidden;width:auto';
+  el.parentNode.append(probe);
+  let wMax = 0; for (const w of T().rw) { probe.textContent = w; wMax = Math.max(wMax, probe.offsetWidth); }
+  probe.textContent = el.firstChild ? el.firstChild.textContent : ''; const wCur = probe.offsetWidth;
+  probe.remove();
+  const ln = el.closest('.ln'), need = ln.getBoundingClientRect().left - hero.getBoundingClientRect().left + ln.scrollWidth - wCur + wMax;
+  if (need > avail) qt.style.fontSize = (parseFloat(getComputedStyle(qt).fontSize) * avail / need * .98) + 'px';
+}
+addEventListener('resize', () => { if (!rotBusy) fitHero(); });
+fontsReady().then(fitHero);
+function swapWord(el, next) {
+  if (RM) { el.textContent = next; return; }
+  rotBusy = true;
+  const plate = el.closest('.pl'), bg = getComputedStyle(plate).backgroundColor;
+  const lightPlate = plate.classList.contains('bg-w');
+  const accents = lightPlate ? ['#C9D3FF', '#AEBCF3'] : ['#00C46A', '#9EF7C4'];
+  const fs = parseFloat(getComputedStyle(el).fontSize) || 64, cell = Math.max(6, Math.round(fs / 7));
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const cv = document.createElement('canvas'); cv.className = 'rot-cv'; cv.setAttribute('aria-hidden', 'true');
+  el.append(cv);
+  const ctx = cv.getContext('2d');
+  let cells = [], W = 0, H = 0;
+  const fit = () => {
+    const w = el.offsetWidth, h = el.offsetHeight + Math.round(fs * .14);   // запас под выносные элементы (у, р)
+    if (w === W && h === H) return;
+    W = w; H = h; cv.width = Math.ceil(w * dpr); cv.height = Math.ceil(h * dpr);
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const old = new Map(cells.map(c => [c.x + ',' + c.y, c.t]));
+    cells = [];
+    for (let y = 0; y < h; y += cell) for (let x = 0; x < w; x += cell) cells.push({ x, y, t: old.get(x + ',' + y) ?? Math.random(), a: accents[Math.random() * 2 | 0] });
+  };
+  const draw = (p, inPhase) => {
+    ctx.clearRect(0, 0, W, H);
+    for (const c of cells) {
+      const k = inPhase ? 1 - p : p;            // доля закрытых клеток
+      if (c.t >= k) continue;
+      const fresh = k - c.t < .14;
+      ctx.fillStyle = fresh ? c.a : bg;
+      ctx.fillRect(c.x, c.y, cell + .5, cell + .5);
+    }
+  };
+  const phase = (dur, fn) => new Promise(res => {
+    const t0 = performance.now();
+    const f = now => { const p = Math.min(1, (now - t0) / dur); fn(p); p < 1 ? requestAnimationFrame(f) : res(); };
+    requestAnimationFrame(f);
+  });
+  fit();
+  phase(320, p => draw(p, false)).then(() => {
+    const w0 = el.offsetWidth; el.textContent = next; el.append(cv);
+    const w1 = el.offsetWidth;
+    el.style.width = w0 + 'px'; void el.offsetWidth;
+    el.style.transition = 'width .32s cubic-bezier(.77,0,.175,1)'; el.style.width = w1 + 'px';
+    return phase(340, () => { fit(); draw(1, false); });
+  }).then(() => {
+    el.style.transition = ''; el.style.width = '';
+    fit();
+    return phase(380, p => draw(p, true));
+  }).finally(() => { cv.remove(); rotBusy = false; });
+}
+
+/* =========================================================
    Язык
    ========================================================= */
 function applyLang(l, anim) {
   const was = S.lang; S.lang = l; LS.set('uzex.lang', l);
   document.documentElement.lang = l;
   const t = T();
-  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t[el.dataset.i18n]; });
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t[el.dataset.i18n];
+    if (v.includes('{w}')) { rotI = 0; el.innerHTML = v.split('{w}').map(esc).join(`<span class="rot">${esc(t.rw[0])}</span>`); }
+    else el.textContent = v;
+  });
+  fitHero();
   document.querySelectorAll('[data-i18n-label]').forEach(el => { const v = t[el.dataset.i18nLabel]; el.setAttribute('aria-label', v); if (el.tagName === 'BUTTON') el.title = v; });
   const lg = $('.lang'); lg.dataset.l = l;
   lg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === l)));
   setBusy(S.busy);
-  renderHist();
+  renderHist(); renderPage();
+  if (route) document.title = `${t[route === 'about' ? 'aboutT' : 'teamT']} · UZEX AI`;
   if (was !== l || !anim) {
     if (S.view === 'chat') {
-      // лента не перерисовывается: ответы агента остаются на языке вопроса
+      if (!S.busy) renderThread();      // идущий ответ не прерываем; язык интерфейса ≠ язык ответа
     } else if (anim) replayHero();
     phRestart();
   }
@@ -1015,7 +1295,5 @@ document.addEventListener('keydown', e => {
 paintIcons();
 applyLang(LS.get('uzex.lang', 'ru') === 'uz' ? 'uz' : 'ru', false);
 // поле собирается сразу, не дожидаясь шрифтов; заголовок ждёт шрифт внутри replayHero
-replayHero(true);
-// ссылка вида /?q=вопрос сразу задаёт вопрос
-try { const q0 = new URLSearchParams(location.search).get('q'); if (q0) setTimeout(() => submit(q0), RM ? 0 : 900); } catch {}
+if (PAGES.includes(location.hash.slice(1))) applyRoute(); else replayHero(true);
 })();

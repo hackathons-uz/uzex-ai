@@ -576,3 +576,14 @@ details.ev[data-only="19"] .ev-s[data-i="19"] { display: block; }
 .ask.too-long { animation: tooLong .42s var(--ease); box-shadow: inset 0 0 0 var(--stroke) var(--danger); }
 @keyframes tooLong { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 @media (prefers-reduced-motion: reduce) { .ask.too-long { animation: none; } .toast { transition: none; } }
+
+/* Страница «О решении»: шаги, цифры проверки, технологии */
+.page-steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: grid; gap: .375rem; }
+.page-steps li { counter-increment: st; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 0 .25rem; padding: .875rem 1rem; background: var(--ink2); color: var(--text-2); line-height: 1.55; }
+.page-steps li::before { content: counter(st, decimal-leading-zero); font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--neon); padding-top: .2rem; grid-row: span 2; }
+.page-steps b { color: var(--white); font-weight: 600; }
+.page-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .375rem; margin-top: 1rem; }
+.pg-stat { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; padding: 1rem; background: var(--ink2); min-width: 0; }
+.pg-stat-v { display: block; font-size: clamp(1.375rem, 2.2vw, 1.75rem); font-weight: 600; color: var(--neon); line-height: 1.1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pg-stat-l { display: block; font-size: var(--fs-mono-sm); color: var(--peri-l); text-transform: uppercase; letter-spacing: .04em; line-height: 1.4; overflow-wrap: anywhere; }
+.page-body .chips { display: flex; flex-wrap: wrap; gap: .375rem; }

@@ -86,6 +86,19 @@ const I18N = {
           'Модель не придумывает числа. Она находит товары, компании и брокеров, пишет SQL-запрос к реестру, а код сверяет каждое число в ответе с результатами запросов. Если в данных ответа нет, агент так и говорит.'],
       listH: 'Что умеет',
       list: ['Считает сделки, суммы, объёмы, цены и доли', 'Находит компании и товары в любом написании: кириллица, латиница, узбекский', 'Показывает, на чём основан ответ: SQL-запросы и строки данных', 'Отвечает на языке вопроса: русский или узбекский', 'Говорит «нет в данных» вместо догадок', 'История чатов хранится в браузере'],
+      secs: [
+        { h: 'Как это работает', steps: [
+          ['Данные.', '10 CSV-файлов реестра очищены и собраны в одну аналитическую базу (DuckDB, 29 МБ): суммы и даты разобраны, экспортные сделки пересчитаны в сумы по курсу на дату сделки, регионы приведены к одному написанию, 230 вариантов названий товаров вручную сведены в 42 товарные группы с узбекскими синонимами.'],
+          ['Поиск.', 'Нечёткий поиск товаров, компаний и брокеров на кириллице, латинице и узбекском. ИНН и код брокера ищутся точно.'],
+          ['Агент.', 'LLM (Claude Haiku 5.5) понимает вопрос, находит нужные записи и пишет SQL-запрос к реестру. Все числа считает база, а не модель.'],
+          ['Проверка.', 'Код сверяет каждое число и дату в ответе с результатами запросов. Если число не найдено, ответ отклоняется, и модель пересчитывает.'],
+          ['Ответ.', 'Короткий ответ на языке вопроса, условия расчёта и все шаги: поиск, SQL и строки данных. Если ответа в данных нет, агент говорит об этом прямо.'],
+        ] },
+        { h: 'Как мы проверяли ответы', p: ['62 тестовых вопроса на русском, узбекском (латиница и кириллица) с эталонными ответами, посчитанными SQL-запросами по тем же данным. Ловушки: несуществующие сделки, ИНН и брокеры, даты вне периода, отсутствующие поля, прогнозы.'],
+          stats: [['62 / 62', 'верных ответов'], ['14 / 14', 'ловушек «нет в данных»'], ['0', 'непроверенных чисел'], ['3,8 с', 'медианное время ответа'], ['30+', 'проверок качества данных']] },
+        { h: 'Технологии', chips: ['Python', 'FastAPI', 'DuckDB', 'Parquet', 'Claude Haiku 5.5', 'Tool use', 'Prompt caching', 'SSE-стриминг', 'JavaScript', 'Vercel'] },
+        { h: 'Надёжность', list: ['SQL только на чтение: один запрос, таймаут 15 с, без доступа к файлам', 'Числа в ответе сверяются с данными автоматически', 'Вопрос до 2000 символов', 'Ответ не дольше 90 секунд: агент укладывается в лимит'] },
+      ],
     },
     team: {
       h: 'Команда devtones',
@@ -152,6 +165,19 @@ const I18N = {
           'Model raqamlarni oʻylab topmaydi. U tovarlar, kompaniyalar va brokerlarni topadi, reyestrga SQL-soʻrov yozadi, kod esa javobdagi har bir raqamni soʻrov natijalari bilan solishtiradi. Maʼlumotlarda javob boʻlmasa, agent buni ochiq aytadi.'],
       listH: 'Nimalar qila oladi',
       list: ['Bitimlar soni, summalar, hajmlar, narxlar va ulushlarni hisoblaydi', 'Kompaniya va tovarlarni istalgan yozuvda topadi: kirill, lotin, rus tili', 'Javob nimaga asoslanganini koʻrsatadi: SQL-soʻrovlar va maʼlumot qatorlari', 'Savol tilida javob beradi: rus yoki oʻzbek', 'Taxmin qilmaydi, “maʼlumotlarda yoʻq” deydi', 'Suhbatlar tarixi brauzerda saqlanadi'],
+      secs: [
+        { h: 'Qanday ishlaydi', steps: [
+          ['Maʼlumotlar.', 'Reyestrning 10 ta CSV fayli tozalanib, bitta tahliliy bazaga yigʻildi (DuckDB, 29 MB): summa va sanalar ajratildi, eksport bitimlari bitim sanasidagi kurs boʻyicha soʻmga oʻtkazildi, viloyatlar bir xil yozuvga keltirildi, tovar nomlarining 230 varianti qoʻlda 42 ta tovar guruhiga oʻzbekcha sinonimlar bilan birlashtirildi.'],
+          ['Qidiruv.', 'Tovarlar, kompaniyalar va brokerlarni kirill, lotin va oʻzbek yozuvida noaniq qidirish. STIR va broker kodi aniq qidiriladi.'],
+          ['Agent.', 'LLM (Claude Haiku 5.5) savolni tushunadi, kerakli yozuvlarni topadi va reyestrga SQL-soʻrov yozadi. Barcha raqamlarni model emas, baza hisoblaydi.'],
+          ['Tekshiruv.', 'Kod javobdagi har bir raqam va sanani soʻrov natijalari bilan solishtiradi. Raqam topilmasa, javob rad etiladi va model qayta hisoblaydi.'],
+          ['Javob.', 'Savol tilida qisqa javob, hisoblash shartlari va barcha qadamlar: qidiruv, SQL va maʼlumot qatorlari. Maʼlumotlarda javob boʻlmasa, agent buni ochiq aytadi.'],
+        ] },
+        { h: 'Javoblarni qanday tekshirdik', p: ['Rus va oʻzbek tillarida (lotin va kirill) 62 ta test savoli, etalon javoblar shu maʼlumotlar boʻyicha SQL-soʻrovlar bilan hisoblangan. Tuzoqlar: mavjud boʻlmagan bitimlar, STIR va brokerlar, davrdan tashqari sanalar, yoʻq maydonlar, prognozlar.'],
+          stats: [['62 / 62', 'toʻgʻri javob'], ['14 / 14', '“maʼlumotlarda yoʻq” tuzoqlari'], ['0', 'tekshirilmagan raqam'], ['3,8 s', 'oʻrtacha javob vaqti'], ['30+', 'maʼlumot sifati tekshiruvi']] },
+        { h: 'Texnologiyalar', chips: ['Python', 'FastAPI', 'DuckDB', 'Parquet', 'Claude Haiku 5.5', 'Tool use', 'Prompt caching', 'SSE-striming', 'JavaScript', 'Vercel'] },
+        { h: 'Ishonchlilik', list: ['SQL faqat oʻqish uchun: bitta soʻrov, 15 s taymaut, fayllarga kirish yoʻq', 'Javobdagi raqamlar maʼlumotlar bilan avtomatik solishtiriladi', 'Savol 2000 belgigacha', 'Javob 90 soniyadan oshmaydi: agent limitga sigʻadi'] },
+      ],
     },
     team: {
       h: 'devtones jamoasi',
@@ -1072,7 +1098,13 @@ function renderPage() {
   const t = T(), a = t[route];
   pageT.textContent = t[route === 'about' ? 'aboutT' : 'teamT'];
   pageBody.innerHTML = route === 'about'
-    ? `<p class="page-lead">${esc(a.h)}</p>${a.p.map(x => `<p>${esc(x)}</p>`).join('')}<h2 class="page-h">${esc(a.listH)}</h2><ul class="page-list">${a.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
+    ? `<p class="page-lead">${esc(a.h)}</p>${a.p.map(x => `<p>${esc(x)}</p>`).join('')}<h2 class="page-h">${esc(a.listH)}</h2><ul class="page-list">${a.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` +
+      (a.secs || []).map(sec => `<h2 class="page-h">${esc(sec.h)}</h2>` +
+        (sec.p ? sec.p.map(x => `<p>${esc(x)}</p>`).join('') : '') +
+        (sec.steps ? `<ol class="page-steps">${sec.steps.map(x => `<li><b>${esc(x[0])}</b> ${esc(x[1])}</li>`).join('')}</ol>` : '') +
+        (sec.stats ? `<div class="page-stats">${sec.stats.map(x => `<div class="pg-stat"><span class="pg-stat-v">${esc(x[0])}</span><span class="pg-stat-l mono">${esc(x[1])}</span></div>`).join('')}</div>` : '') +
+        (sec.chips ? `<div class="chips">${sec.chips.map(x => `<span class="tag tag-f">${esc(x)}</span>`).join('')}</div>` : '') +
+        (sec.list ? `<ul class="page-list">${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '')).join('')
     : ``+
       `<div class="team-grid">` + a.members.map(m => `<article class="mem">
         <div class="mem-ph"><img src="img/${m.img}.webp" width="800" height="800" alt="${a.photo}: ${esc(m.n)}" decoding="async"></div>

@@ -1,0 +1,10 @@
+.env
+.env.*
+*.zip
+data/*.csv
+.DS_Store
+node_modules/
+__pycache__/
+.venv/
+.vercel/
+dist/

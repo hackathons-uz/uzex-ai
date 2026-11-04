@@ -434,3 +434,4 @@ details.ev[open] > summary::before { transform: rotate(45deg); }
 .ev-err { color: var(--danger); font-size: .8125rem; }
 .ev-more { margin-top: .375rem; font-size: var(--fs-mono-sm); color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) { .ev-s.flash { animation: none; } }
+.m-src .ev-chip[aria-pressed="true"] { color: var(--ink); background: var(--white); box-shadow: none; }

@@ -459,7 +459,7 @@ function addTail(m, rec, instant) {
   const tail = document.createElement('div'); tail.className = 'm-tail' + (instant ? ' on' : '');
   tail.innerHTML =
     `<div class="m-src">${badge}` +
-    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
+    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" aria-pressed="false" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
     `<span class="tag tag-o ev-time mono">${d.elapsed_s} ${t.sec}</span></div>` +
     (d.assumptions && d.assumptions.length ? `<p class="m-asm"><span class="mono">${t.assumptions}:</span> ${esc(d.assumptions.join('; '))}</p>` : '') +
     (steps.length ? `<details class="ev"><summary class="mono">${t.how} · ${steps.length}</summary>${steps.map((st, i) => stepHTML(st, i, t)).join('')}</details>` : '') +
@@ -868,7 +868,13 @@ threadIn.addEventListener('click', e => {
   const rec = S.msgs[idx];
   if (b.dataset.act === 'ev') {
     const det = m.querySelector('details.ev'); if (!det) return;
+    const chips = m.querySelectorAll('.ev-chip');
+    if (det.open && b.getAttribute('aria-pressed') === 'true') {      // тот же источник ещё раз — свернуть
+      det.open = false;
+      return;
+    }
     det.open = true;
+    chips.forEach(c => c.setAttribute('aria-pressed', String(c === b)));
     const target = det.querySelector(`.ev-s[data-i="${b.dataset.i}"]`);
     if (target) { target.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'nearest' }); target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); }
   } else if (b.dataset.act === 'copy') {
@@ -885,6 +891,12 @@ threadIn.addEventListener('click', e => {
     respond(question);
   }
 });
+
+threadIn.addEventListener('toggle', e => {
+  const det = e.target;
+  if (!(det instanceof HTMLDetailsElement) || !det.classList.contains('ev') || det.open) return;
+  det.closest('.m').querySelectorAll('.ev-chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+}, true);
 
 /* =========================================================
    История чатов

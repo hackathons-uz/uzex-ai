@@ -390,8 +390,9 @@
   "id": "top_product_2023",
   "group": "top",
   "q": "Какой товар чаще всего продавался в 2023 году по числу сделок?",
-  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2023 AND product_full='Топливо дизельное Марка ДТ-Е-К5'",
+  "truth_sql": "SELECT product_family, count(*) n FROM deals WHERE year=2023 GROUP BY 1 ORDER BY 2 DESC LIMIT 1",
   "check": [
+   "product_family",
    "n"
   ]
  },

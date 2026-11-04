@@ -59,10 +59,13 @@ FALLBACK = {
 def _history_block(history):
     if not history:
         return ""
-    lines = ["Earlier in this chat (for context only; re-check any fact with tools):"]
+    lines = ["Earlier in this chat - use it ONLY to understand what the new question refers to "
+             "(a product, company, broker, region or period mentioned before). Answer only the new question. "
+             "Do not re-check, re-run or repeat earlier answers. Compute every number for the new question with "
+             "fresh tool calls; never copy numbers from these earlier answers."]
     for h in history[-3:]:
         lines.append(f"Q: {h.get('q', '')}\nA: {h.get('a', '')}")
-    return "\n".join(lines) + "\n\n"
+    return "\n".join(lines) + "\n\nNew question:\n"
 
 
 def answer(question: str, history=None, on_event=None) -> dict:

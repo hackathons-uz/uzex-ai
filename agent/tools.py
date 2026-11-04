@@ -63,7 +63,9 @@ TOOLS = [
                 "answer": {"type": "string", "description": "The answer in the user's language and script. 1-4 sentences."},
                 "assumptions": {
                     "type": "array", "items": {"type": "string"},
-                    "description": "Filters and interpretations used, in the user's language (e.g. 'аннулированные сделки исключены').",
+                    "description": ("1-3 short items (a few words each), in the user's language: only the filters and "
+                                    "interpretations you chose, e.g. 'товар: все написания цемента', 'аннулированные сделки "
+                                    "показаны отдельно'. No numbers and no repeating the answer; no column names or SQL."),
                 },
             },
             "required": ["answerable", "language", "answer", "assumptions"],

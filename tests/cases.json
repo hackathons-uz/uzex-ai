@@ -1,38 +1,476 @@
 [
-  {"id": "deal_parties", "group": "lookup", "q": "Сделка №280091: кто продавец и покупатель?",
-   "truth_sql": "SELECT seller_name, buyer_name FROM deals WHERE deal_id = 280091", "check": ["seller_name", "buyer_name"]},
-  {"id": "deal_amount_uz", "group": "lookup", "q": "280092-raqamli bitimning summasi qancha?",
-   "truth_sql": "SELECT amount FROM deals WHERE deal_id = 280092", "check": ["amount"]},
-  {"id": "deal_missing", "group": "trap", "q": "Покажи сделку номер 300470", "answerable": false},
-  {"id": "inn_lookup", "group": "lookup", "q": "Что за компания с ИНН 992421731?",
-   "truth_sql": "SELECT name FROM participants WHERE inn = '992421731'", "check": ["name"]},
-  {"id": "usd_rate_day", "group": "lookup", "q": "Какой был курс доллара 15.03.2024?",
-   "truth_sql": "SELECT usd_rate FROM usd_rates WHERE rate_date = '2024-03-15'", "check": ["usd_rate"]},
-
-  {"id": "sugar_count_2024", "group": "count", "q": "Сколько сделок по сахару было в 2024 году?",
-   "truth_sql": "SELECT count(*) AS n FROM deals WHERE product ILIKE '%сахар%' AND year = 2024", "check": ["n"]},
-  {"id": "cancelled_2026", "group": "count", "q": "Сколько сделок аннулировано в 2026 году?",
-   "truth_sql": "SELECT count(*) AS n FROM deals WHERE is_cancelled AND year = 2026", "check": ["n"]},
-  {"id": "namangan_2024_uz", "group": "count", "q": "2024-yilda Namangan viloyatida nechta bitim tuzilgan?",
-   "truth_sql": "SELECT count(*) AS n FROM deals WHERE year = 2024 AND region = 'Namangan viloyati'", "check": ["n"]},
-  {"id": "forward_2026", "group": "count", "q": "Сколько форвардных сделок заключено в 2026 году?",
-   "truth_sql": "SELECT count(*) AS n FROM deals WHERE contract_form = 'Форвард' AND year = 2026", "check": ["n"]},
-  {"id": "cement_volume_2025", "group": "volume", "q": "Сколько тонн цемента продано в 2025 году?",
-   "truth_sql": "SELECT round(sum(volume), 2) AS v FROM deals WHERE product ILIKE '%цемент%' AND year = 2025 AND NOT is_cancelled", "check": ["v"]},
-  {"id": "export_usd_2023_cyr", "group": "currency", "q": "2023 йилда экспорт битимлари жами неча доллар бўлган?",
-   "truth_sql": "SELECT round(sum(amount), 2) AS usd FROM deals WHERE currency = 'USD' AND year = 2023 AND NOT is_cancelled", "check": ["usd"]},
-
-  {"id": "top_buyer_urea_2025", "group": "top", "q": "Кто крупнейший покупатель карбамида по сумме за 2025 год?",
-   "truth_sql": "SELECT buyer_name FROM deals WHERE product ILIKE '%карбамид%' AND year = 2025 AND NOT is_cancelled GROUP BY 1 ORDER BY sum(amount_uzs) DESC LIMIT 1", "check": ["buyer_name"]},
-  {"id": "top_broker_2025_uz", "group": "top", "q": "2025-yilda eng ko‘p bitim tuzgan broker qaysi?",
-   "truth_sql": "WITH b AS (SELECT seller_broker br FROM deals WHERE year = 2025 UNION ALL SELECT buyer_broker FROM deals WHERE year = 2025 AND buyer_broker <> seller_broker) SELECT br FROM b GROUP BY 1 ORDER BY count(*) DESC LIMIT 1", "check": ["br"]},
-  {"id": "company_cyr_deals", "group": "fuzzy", "q": "ҲАРАЙЎМ КИМЁ нечта битимда сотувчи бўлган?",
-   "truth_sql": "SELECT count(*) AS n FROM deals WHERE seller_inn = (SELECT inn FROM participants WHERE name LIKE '%ҲАРАЙЎМ%')", "check": ["n"]},
-
-  {"id": "trap_gold", "group": "trap", "q": "Сколько золота продали на бирже в 2024 году?", "answerable": false},
-  {"id": "trap_2021", "group": "trap", "q": "Сделки по цементу за 2021 год", "answerable": false},
-  {"id": "trap_phone", "group": "trap", "q": "Какой телефон у компании TIZAHI METALL MCHJ?", "answerable": false},
-  {"id": "trap_inn", "group": "trap", "q": "ИНН 123456789 — что за компания?", "answerable": false},
-  {"id": "trap_forecast_uz", "group": "trap", "q": "2027-yilda karbamid narxi qancha bo‘ladi?", "answerable": false},
-  {"id": "trap_broker", "group": "trap", "q": "Сколько сделок у брокера BK999?", "answerable": false}
+ {
+  "id": "deal_parties",
+  "group": "lookup",
+  "q": "Сделка №280091: кто продавец и покупатель?",
+  "truth_sql": "SELECT seller_name, buyer_name FROM deals WHERE deal_id = 280091",
+  "check": [
+   "seller_name",
+   "buyer_name"
+  ]
+ },
+ {
+  "id": "deal_amount_uz",
+  "group": "lookup",
+  "q": "280092-raqamli bitimning summasi qancha?",
+  "truth_sql": "SELECT amount FROM deals WHERE deal_id = 280092",
+  "check": [
+   "amount"
+  ]
+ },
+ {
+  "id": "deal_missing",
+  "group": "trap",
+  "q": "Покажи сделку номер 300470",
+  "answerable": false
+ },
+ {
+  "id": "inn_lookup",
+  "group": "lookup",
+  "q": "Что за компания с ИНН 992421731?",
+  "truth_sql": "SELECT name FROM participants WHERE inn = '992421731'",
+  "check": [
+   "name"
+  ]
+ },
+ {
+  "id": "usd_rate_day",
+  "group": "lookup",
+  "q": "Какой был курс доллара 15.03.2024?",
+  "truth_sql": "SELECT usd_rate FROM usd_rates WHERE rate_date = '2024-03-15'",
+  "check": [
+   "usd_rate"
+  ]
+ },
+ {
+  "id": "sugar_count_2024",
+  "group": "count",
+  "q": "Сколько сделок по сахару было в 2024 году?",
+  "truth_sql": "SELECT count(*) AS n FROM deals WHERE product ILIKE '%сахар%' AND year = 2024",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "cancelled_2026",
+  "group": "count",
+  "q": "Сколько сделок аннулировано в 2026 году?",
+  "truth_sql": "SELECT count(*) AS n FROM deals WHERE is_cancelled AND year = 2026",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "namangan_2024_uz",
+  "group": "count",
+  "q": "2024-yilda Namangan viloyatida nechta bitim tuzilgan?",
+  "truth_sql": "SELECT count(*) AS n FROM deals WHERE year = 2024 AND region = 'Namangan viloyati'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "forward_2026",
+  "group": "count",
+  "q": "Сколько форвардных сделок заключено в 2026 году?",
+  "truth_sql": "SELECT count(*) AS n FROM deals WHERE contract_form = 'Форвард' AND year = 2026",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "cement_volume_2025",
+  "group": "volume",
+  "q": "Сколько тонн цемента продано в 2025 году?",
+  "truth_sql": "SELECT round(sum(volume), 2) AS v FROM deals WHERE product ILIKE '%цемент%' AND year = 2025 AND NOT is_cancelled",
+  "check": [
+   "v"
+  ]
+ },
+ {
+  "id": "export_usd_2023_cyr",
+  "group": "currency",
+  "q": "2023 йилда экспорт битимлари жами неча доллар бўлган?",
+  "truth_sql": "SELECT round(sum(amount), 2) AS usd FROM deals WHERE currency = 'USD' AND year = 2023 AND NOT is_cancelled",
+  "check": [
+   "usd"
+  ]
+ },
+ {
+  "id": "top_buyer_urea_2025",
+  "group": "top",
+  "q": "Кто крупнейший покупатель карбамида по сумме за 2025 год?",
+  "truth_sql": "SELECT buyer_name FROM deals WHERE product ILIKE '%карбамид%' AND year = 2025 AND NOT is_cancelled GROUP BY 1 ORDER BY sum(amount_uzs) DESC LIMIT 1",
+  "check": [
+   "buyer_name"
+  ]
+ },
+ {
+  "id": "top_broker_2025_uz",
+  "group": "top",
+  "q": "2025-yilda eng ko‘p bitim tuzgan broker qaysi?",
+  "truth_sql": "WITH b AS (SELECT seller_broker br FROM deals WHERE year = 2025 UNION ALL SELECT buyer_broker FROM deals WHERE year = 2025 AND buyer_broker <> seller_broker) SELECT br FROM b GROUP BY 1 ORDER BY count(*) DESC LIMIT 1",
+  "check": [
+   "br"
+  ]
+ },
+ {
+  "id": "company_cyr_deals",
+  "group": "fuzzy",
+  "q": "ҲАРАЙЎМ КИМЁ нечта битимда сотувчи бўлган?",
+  "truth_sql": "SELECT count(*) AS n FROM deals WHERE seller_inn = (SELECT inn FROM participants WHERE name LIKE '%ҲАРАЙЎМ%')",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "trap_gold",
+  "group": "trap",
+  "q": "Сколько золота продали на бирже в 2024 году?",
+  "answerable": false
+ },
+ {
+  "id": "trap_2021",
+  "group": "trap",
+  "q": "Сделки по цементу за 2021 год",
+  "answerable": false
+ },
+ {
+  "id": "trap_phone",
+  "group": "trap",
+  "q": "Какой телефон у компании TIZAHI METALL MCHJ?",
+  "answerable": false
+ },
+ {
+  "id": "trap_inn",
+  "group": "trap",
+  "q": "ИНН 123456789 — что за компания?",
+  "answerable": false
+ },
+ {
+  "id": "trap_forecast_uz",
+  "group": "trap",
+  "q": "2027-yilda karbamid narxi qancha bo‘ladi?",
+  "answerable": false
+ },
+ {
+  "id": "trap_broker",
+  "group": "trap",
+  "q": "Сколько сделок у брокера BK999?",
+  "answerable": false
+ },
+ {
+  "id": "deal_status_date",
+  "group": "lookup",
+  "q": "Какой статус у сделки 350000 и когда она заключена?",
+  "truth_sql": "SELECT status, deal_date FROM deals WHERE deal_id=350000",
+  "check": [
+   "status"
+  ]
+ },
+ {
+  "id": "deal_product_uz",
+  "group": "lookup",
+  "q": "350000-bitimda qaysi tovar sotilgan?",
+  "truth_sql": "SELECT product_full FROM deals WHERE deal_id=350000",
+  "check": [
+   "product_full"
+  ]
+ },
+ {
+  "id": "deal_brokers",
+  "group": "lookup",
+  "q": "Какие брокеры участвовали в сделке №350000?",
+  "truth_sql": "SELECT seller_broker, buyer_broker FROM deals WHERE deal_id=350000",
+  "check": [
+   "seller_broker",
+   "buyer_broker"
+  ]
+ },
+ {
+  "id": "contract_terms",
+  "group": "lookup",
+  "q": "Какой срок оплаты и срок поставки по контракту 101373?",
+  "truth_sql": "SELECT payment_term_days, delivery_term_days FROM contracts WHERE contract_id=101373",
+  "check": [
+   "payment_term_days",
+   "delivery_term_days"
+  ]
+ },
+ {
+  "id": "contract_seller_uz",
+  "group": "lookup",
+  "q": "101373-shartnoma bo‘yicha sotuvchi kim?",
+  "truth_sql": "SELECT p.name FROM contracts c JOIN participants p ON p.inn=c.seller_inn WHERE contract_id=101373",
+  "check": [
+   "name"
+  ]
+ },
+ {
+  "id": "broker_name",
+  "group": "lookup",
+  "q": "Брокер BK005 — как называется и из какого региона?",
+  "truth_sql": "SELECT name FROM brokers WHERE broker_code='BK005'",
+  "check": [
+   "name"
+  ]
+ },
+ {
+  "id": "usd_rate_uz",
+  "group": "lookup",
+  "q": "2025-yil 31-dekabrda dollar kursi qancha edi?",
+  "truth_sql": "SELECT usd_rate FROM usd_rates WHERE rate_date='2025-12-31'",
+  "check": [
+   "usd_rate"
+  ]
+ },
+ {
+  "id": "inn_region_cyr",
+  "group": "lookup",
+  "q": "986932945 СТИРли компания қайси вилоятда жойлашган?",
+  "truth_sql": "SELECT name FROM participants WHERE inn='986932945'",
+  "check": [
+   "name"
+  ]
+ },
+ {
+  "id": "reverse_2023",
+  "group": "count",
+  "q": "Сколько сделок прошло через обратный аукцион в 2023 году?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE trade_type='Обратный аукцион' AND year=2023",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "export_count_2024_uz",
+  "group": "count",
+  "q": "2024-yilda nechta eksport bitimi bo‘lgan?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE contract_type='Экспортный' AND year=2024",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "partial_2025",
+  "group": "count",
+  "q": "Сколько сделок в 2025 году исполнено частично?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE status='Исполнен(Частично)' AND year=2025",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "oct_2026",
+  "group": "count",
+  "q": "Сколько сделок было в октябре 2026 года?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2026 AND month=10",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "samarqand_2023_cyr",
+  "group": "count",
+  "q": "2023 йилда Самарқанд вилоятида нечта битим бўлган?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2023 AND region='Samarqand viloyati'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "futures_total",
+  "group": "count",
+  "q": "Сколько всего фьючерсных сделок в реестре?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE contract_form='Фьючерс'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "vat_payers",
+  "group": "count",
+  "q": "Сколько участников являются плательщиками НДС?",
+  "truth_sql": "SELECT count(*) n FROM participants WHERE vat_payer",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "brokers_andijan_uz",
+  "group": "count",
+  "q": "Andijon viloyatida nechta broker bor?",
+  "truth_sql": "SELECT count(*) n FROM brokers WHERE region='Andijon viloyati'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "turnover_2025",
+  "group": "sum",
+  "q": "Какой общий оборот биржи в сумах за 2025 год?",
+  "truth_sql": "SELECT round(sum(amount_uzs),2) s FROM deals WHERE year=2025 AND NOT is_cancelled",
+  "check": [
+   "s"
+  ]
+ },
+ {
+  "id": "cotton_turnover_2024",
+  "group": "sum",
+  "q": "На какую сумму продано хлопка-сырца в 2024 году?",
+  "truth_sql": "SELECT round(sum(amount_uzs),2) s FROM deals WHERE product ILIKE '%хлопок%сырец%' AND year=2024 AND NOT is_cancelled",
+  "check": [
+   "s"
+  ]
+ },
+ {
+  "id": "tashkent_2026_uz",
+  "group": "sum",
+  "q": "2026-yilda Toshkent shahrida bitimlar jami summasi qancha?",
+  "truth_sql": "SELECT round(sum(amount_uzs),2) s FROM deals WHERE region='Toshkent shahri' AND year=2026 AND NOT is_cancelled",
+  "check": [
+   "s"
+  ]
+ },
+ {
+  "id": "wheat_volume_2026",
+  "group": "volume",
+  "q": "Сколько тонн пшеницы продано в 2026 году?",
+  "truth_sql": "SELECT round(sum(volume),2) v FROM deals WHERE product ILIKE '%пшениц%' AND year=2026 AND NOT is_cancelled",
+  "check": [
+   "v"
+  ]
+ },
+ {
+  "id": "urea_price_2024",
+  "group": "price",
+  "q": "Какая средняя цена тонны карбамида в 2024 году?",
+  "truth_sql": "SELECT round(sum(amount)/sum(volume),2) w FROM deals WHERE product ILIKE '%карбамид%' AND year=2024 AND NOT is_cancelled",
+  "check": [
+   "w"
+  ]
+ },
+ {
+  "id": "diesel_price_mar2023",
+  "group": "price",
+  "q": "Средняя цена дизельного топлива в марте 2023 года?",
+  "truth_sql": "SELECT round(sum(amount)/sum(volume),2) w FROM deals WHERE product_key ILIKE '%дизельное топливо%' AND year=2023 AND month=3 AND NOT is_cancelled",
+  "check": [
+   "w"
+  ]
+ },
+ {
+  "id": "max_deal_2023",
+  "group": "top",
+  "q": "Какая самая крупная сделка по сумме в 2023 году?",
+  "truth_sql": "SELECT deal_id FROM deals WHERE year=2023 ORDER BY amount_uzs DESC LIMIT 1",
+  "check": [
+   "deal_id"
+  ]
+ },
+ {
+  "id": "top_seller_2024",
+  "group": "top",
+  "q": "Кто крупнейший продавец по сумме сделок в 2024 году?",
+  "truth_sql": "SELECT seller_name FROM deals WHERE year=2024 AND NOT is_cancelled GROUP BY 1 ORDER BY sum(amount_uzs) DESC LIMIT 1",
+  "check": [
+   "seller_name"
+  ]
+ },
+ {
+  "id": "top_region_2025_uz",
+  "group": "top",
+  "q": "2025-yilda qaysi viloyatda eng ko‘p bitim tuzilgan?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2025 AND region='Toshkent shahri'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "top_product_2023",
+  "group": "top",
+  "q": "Какой товар чаще всего продавался в 2023 году по числу сделок?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2023 AND product_full='Топливо дизельное Марка ДТ-Е-К5'",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "top_broker_turnover_2024",
+  "group": "top",
+  "q": "Какой брокер провёл сделок на наибольшую сумму в 2024 году?",
+  "truth_sql": "SELECT 'BK111' AS br",
+  "check": [
+   "br"
+  ]
+ },
+ {
+  "id": "top_month_2025",
+  "group": "time",
+  "q": "В каком месяце 2025 года было больше всего сделок?",
+  "truth_sql": "SELECT count(*) n FROM deals WHERE year=2025 AND month=10",
+  "check": [
+   "n"
+  ]
+ },
+ {
+  "id": "top_buyer_all_cyr",
+  "group": "top",
+  "q": "Энг кўп битим тузган харидор ким?",
+  "truth_sql": "SELECT buyer_name FROM deals GROUP BY buyer_inn, buyer_name ORDER BY count(*) DESC LIMIT 1",
+  "check": [
+   "buyer_name"
+  ]
+ },
+ {
+  "id": "cancel_pct_2024",
+  "group": "share",
+  "q": "Какой процент сделок был аннулирован в 2024 году?",
+  "truth_sql": "SELECT round(100.0*count(*) FILTER (WHERE is_cancelled)/count(*),2) pct FROM deals WHERE year=2024",
+  "check": [
+   "pct"
+  ]
+ },
+ {
+  "id": "trap_today_rate",
+  "group": "trap",
+  "q": "Какой курс доллара на сегодня, 5 ноября 2026?",
+  "answerable": false
+ },
+ {
+  "id": "trap_nov_2026",
+  "group": "trap",
+  "q": "Сколько сделок было в ноябре 2026 года?",
+  "answerable": false
+ },
+ {
+  "id": "trap_director",
+  "group": "trap",
+  "q": "Кто директор компании \"Zoket Invest\" OK?",
+  "answerable": false
+ },
+ {
+  "id": "trap_profit_uz",
+  "group": "trap",
+  "q": "BK005 brokeri 2025-yilda qancha foyda qilgan?",
+  "answerable": false
+ },
+ {
+  "id": "trap_brent",
+  "group": "trap",
+  "q": "Сколько нефти марки Brent продано в 2025?",
+  "answerable": false
+ },
+ {
+  "id": "trap_weather",
+  "group": "trap",
+  "q": "Какая погода в Ташкенте?",
+  "answerable": false
+ },
+ {
+  "id": "trap_deal_big",
+  "group": "trap",
+  "q": "Сделка номер 999999999 — кто покупатель?",
+  "answerable": false
+ }
 ]

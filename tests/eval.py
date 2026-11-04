@@ -28,6 +28,7 @@ if args.model:
 from agent.agent import MODEL, answer  # noqa: E402
 from agent.db import get_con, run_sql  # noqa: E402
 from agent.guard import numbers_in_text  # noqa: E402
+from agent.textnorm import norm  # noqa: E402
 
 
 def truth(case):
@@ -45,7 +46,7 @@ def value_in_answer(v, text):
             if abs(round(float(v), dec) - x) < 1e-9 * max(1, abs(x)) + (0.5 * 10 ** -dec if dec else 0.5):
                 return True
         return False
-    return str(v).lower() in text.lower()
+    return norm(str(v)) in norm(text)
 
 
 def run_case(case):

@@ -65,8 +65,18 @@ def _history_block(history):
     return "\n".join(lines) + "\n\n"
 
 
-def answer(question: str, history=None) -> dict:
+def answer(question: str, history=None, on_event=None) -> dict:
+    """on_event(dict) is called with progress events: {'stage': 'read'|'search'|'sql'|'check'|'compose', ...}."""
     t0 = time.time()
+
+    def emit(ev):
+        if on_event:
+            try:
+                on_event(ev)
+            except Exception:
+                pass
+
+    emit({"stage": "read"})
     lang = detect_lang(question)
     messages = [{"role": "user", "content": _history_block(history) + "Question: " + question}]
     steps, results = [], []
@@ -125,9 +135,11 @@ def answer(question: str, history=None) -> dict:
         for tu in tool_uses:
             args = tu.input if isinstance(tu.input, dict) else {}
             if tu.name == "final_answer":
+                emit({"stage": "compose"})
                 bad = unverified_numbers(args.get("answer", ""), results, question)
                 if bad and guard_retries < MAX_GUARD_RETRIES:
                     guard_retries += 1
+                    emit({"stage": "check"})
                     steps.append({"tool": "guard", "purpose": "number check failed", "unverified": bad})
                     tool_results.append({
                         "type": "tool_result", "tool_use_id": tu.id, "is_error": True,
@@ -139,6 +151,10 @@ def answer(question: str, history=None) -> dict:
                 tool_results.append({"type": "tool_result", "tool_use_id": tu.id, "content": "ok"})
                 continue
 
+            if tu.name == "run_sql":
+                emit({"stage": "sql", "purpose": args.get("purpose", "")})
+            else:
+                emit({"stage": "search", "kind": args.get("kind", ""), "query": args.get("query", "")})
             t1 = time.time()
             res = execute(tu.name, args)
             results.append(res)

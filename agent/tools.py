@@ -38,7 +38,7 @@ TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "purpose": {"type": "string", "description": "One short line: what this query checks."},
+                "purpose": {"type": "string", "description": "3-6 words in the language and script of the user's question: what this query computes (shown to the user as a source label)."},
                 "query": {"type": "string"},
             },
             "required": ["purpose", "query"],

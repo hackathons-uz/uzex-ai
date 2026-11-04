@@ -1,5 +1,5 @@
 data/*.csv
 *.zip
 .venv
-node_modules
 docs
+tests/results

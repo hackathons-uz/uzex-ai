@@ -56,6 +56,32 @@ FALLBACK = {
 }
 
 
+_LEAK = re.compile(r"</?(answer|parameter|invoke|antml|function_calls)\b[^>]*>", re.I)
+
+
+def clean_final(args: dict) -> dict:
+    """Repair a malformed final_answer: the model sometimes writes later fields inside `answer` as raw markup,
+    e.g. '...text</answer>\n<parameter name="assumptions">["a", "b"]'. Split them back into real fields."""
+    args = dict(args)
+    text = str(args.get("answer", "") or "")
+    m = _LEAK.search(text)
+    if not m:
+        return args
+    head, tail = text[:m.start()], text[m.start():]
+    for name, raw in re.findall(r'<parameter name="(\w+)">(.*?)(?=<parameter name=|</parameter>|$)', tail, re.S):
+        raw = _LEAK.sub("", raw).strip()
+        if name == "assumptions" and not args.get("assumptions"):
+            try:
+                val = json.loads(raw)
+                args["assumptions"] = [str(x) for x in val] if isinstance(val, list) else [str(val)]
+            except ValueError:
+                args["assumptions"] = [raw] if raw else []
+        elif name == "answerable" and raw.lower() in ("true", "false"):
+            args["answerable"] = raw.lower() == "true"
+    args["answer"] = _LEAK.sub("", head).strip()
+    return args
+
+
 def _history_block(history):
     if not history:
         return ""
@@ -139,6 +165,7 @@ def answer(question: str, history=None, on_event=None) -> dict:
             args = tu.input if isinstance(tu.input, dict) else {}
             if tu.name == "final_answer":
                 emit({"stage": "compose"})
+                args = clean_final(args)
                 bad = unverified_numbers(args.get("answer", ""), results, question)
                 if bad and guard_retries < MAX_GUARD_RETRIES:
                     guard_retries += 1

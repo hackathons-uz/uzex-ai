@@ -868,13 +868,9 @@ threadIn.addEventListener('click', e => {
   const rec = S.msgs[idx];
   if (b.dataset.act === 'ev') {
     const det = m.querySelector('details.ev'); if (!det) return;
-    const chips = m.querySelectorAll('.ev-chip');
-    if (det.open && b.getAttribute('aria-pressed') === 'true') {      // тот же источник ещё раз — свернуть
-      det.open = false;
-      return;
-    }
+    if (det.open && det.dataset.only === b.dataset.i) { det.open = false; return; }   // тот же источник ещё раз — свернуть
+    showOnly(det, b.dataset.i);
     det.open = true;
-    chips.forEach(c => c.setAttribute('aria-pressed', String(c === b)));
     const target = det.querySelector(`.ev-s[data-i="${b.dataset.i}"]`);
     if (target) { target.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'nearest' }); target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); }
   } else if (b.dataset.act === 'copy') {
@@ -892,10 +888,20 @@ threadIn.addEventListener('click', e => {
   }
 });
 
+/* источники: чип показывает только свой шаг, «Как получен ответ» — все шаги */
+function showOnly(det, i) {
+  if (i === null || i === undefined) delete det.dataset.only; else det.dataset.only = i;
+  det.closest('.m').querySelectorAll('.ev-chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.i === i)));
+}
+threadIn.addEventListener('click', e => {
+  const sum = e.target.closest('details.ev > summary'); if (!sum) return;
+  const det = sum.parentElement;
+  if (det.open && det.dataset.only !== undefined) { e.preventDefault(); showOnly(det, null); }  // был один шаг — показать все
+  else if (!det.open) showOnly(det, null);                                                      // открыть все
+});
 threadIn.addEventListener('toggle', e => {
   const det = e.target;
-  if (!(det instanceof HTMLDetailsElement) || !det.classList.contains('ev') || det.open) return;
-  det.closest('.m').querySelectorAll('.ev-chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+  if (det instanceof HTMLDetailsElement && det.classList.contains('ev') && !det.open) showOnly(det, null);
 }, true);
 
 /* =========================================================

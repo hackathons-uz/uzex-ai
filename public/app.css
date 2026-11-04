@@ -435,3 +435,24 @@ details.ev[open] > summary::before { transform: rotate(45deg); }
 .ev-more { margin-top: .375rem; font-size: var(--fs-mono-sm); color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) { .ev-s.flash { animation: none; } }
 .m-src .ev-chip[aria-pressed="true"] { color: var(--ink); background: var(--white); box-shadow: none; }
+details.ev[data-only] .ev-s { display: none; }
+details.ev[data-only="0"] .ev-s[data-i="0"] { display: block; }
+details.ev[data-only="1"] .ev-s[data-i="1"] { display: block; }
+details.ev[data-only="2"] .ev-s[data-i="2"] { display: block; }
+details.ev[data-only="3"] .ev-s[data-i="3"] { display: block; }
+details.ev[data-only="4"] .ev-s[data-i="4"] { display: block; }
+details.ev[data-only="5"] .ev-s[data-i="5"] { display: block; }
+details.ev[data-only="6"] .ev-s[data-i="6"] { display: block; }
+details.ev[data-only="7"] .ev-s[data-i="7"] { display: block; }
+details.ev[data-only="8"] .ev-s[data-i="8"] { display: block; }
+details.ev[data-only="9"] .ev-s[data-i="9"] { display: block; }
+details.ev[data-only="10"] .ev-s[data-i="10"] { display: block; }
+details.ev[data-only="11"] .ev-s[data-i="11"] { display: block; }
+details.ev[data-only="12"] .ev-s[data-i="12"] { display: block; }
+details.ev[data-only="13"] .ev-s[data-i="13"] { display: block; }
+details.ev[data-only="14"] .ev-s[data-i="14"] { display: block; }
+details.ev[data-only="15"] .ev-s[data-i="15"] { display: block; }
+details.ev[data-only="16"] .ev-s[data-i="16"] { display: block; }
+details.ev[data-only="17"] .ev-s[data-i="17"] { display: block; }
+details.ev[data-only="18"] .ev-s[data-i="18"] { display: block; }
+details.ev[data-only="19"] .ev-s[data-i="19"] { display: block; }

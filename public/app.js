@@ -564,15 +564,16 @@ function stepHTML(st, i, t) {
     `<pre class="ev-sql">${esc(st.query || '')}</pre>` +
     (r.error ? `<p class="ev-err">${esc(r.error)}</p>` : tableHTML(r.columns || [], r.rows || [], 20)) + `</div>`;
 }
+function ansT(d) { return I18N[d && String(d.language || '').startsWith('uz') ? 'uz' : 'ru']; }
 function addTail(m, rec, instant) {
-  const d = rec.data, t = T();
+  const d = rec.data, t = ansT(d);
   const steps = (d.steps || []).filter(st => st.tool !== 'guard');
   const badge = !d.answerable ? `<span class="tag ev-b ev-no">${t.noData}</span>`
     : d.verified ? `<span class="tag ev-b ev-ok">✓ ${t.verified}</span>` : `<span class="tag ev-b ev-warn">${t.unverified}</span>`;
   const tail = document.createElement('div'); tail.className = 'm-tail' + (instant ? ' on' : '');
   tail.innerHTML =
     `<div class="m-src">${badge}` +
-    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
+    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" aria-pressed="false" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
     `<span class="tag tag-o ev-time mono">${d.elapsed_s} ${t.sec}</span></div>` +
     (d.assumptions && d.assumptions.length ? `<p class="m-asm"><span class="mono">${t.assumptions}:</span> ${esc(d.assumptions.join('; '))}</p>` : '') +
     (steps.length ? `<details class="ev"><summary class="mono">${t.how} · ${steps.length}</summary>${steps.map((st, i) => stepHTML(st, i, t)).join('')}</details>` : '') +
@@ -997,6 +998,8 @@ threadIn.addEventListener('click', e => {
   const rec = S.msgs[idx];
   if (b.dataset.act === 'ev') {
     const det = m.querySelector('details.ev'); if (!det) return;
+    if (det.open && det.dataset.only === b.dataset.i) { det.open = false; return; }   // тот же источник ещё раз — свернуть
+    showOnly(det, b.dataset.i);
     det.open = true;
     const target = det.querySelector(`.ev-s[data-i="${b.dataset.i}"]`);
     if (target) { target.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'nearest' }); target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); }
@@ -1014,6 +1017,22 @@ threadIn.addEventListener('click', e => {
     respond(question);
   }
 });
+
+/* источники: чип показывает только свой шаг, «Как получен ответ» — все шаги */
+function showOnly(det, i) {
+  if (i === null || i === undefined) delete det.dataset.only; else det.dataset.only = i;
+  det.closest('.m').querySelectorAll('.ev-chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.i === i)));
+}
+threadIn.addEventListener('click', e => {
+  const sum = e.target.closest('details.ev > summary'); if (!sum) return;
+  const det = sum.parentElement;
+  if (det.open && det.dataset.only !== undefined) { e.preventDefault(); showOnly(det, null); }  // был один шаг — показать все
+  else if (!det.open) showOnly(det, null);                                                      // открыть все
+});
+threadIn.addEventListener('toggle', e => {
+  const det = e.target;
+  if (det instanceof HTMLDetailsElement && det.classList.contains('ev') && !det.open) showOnly(det, null);
+}, true);
 
 /* =========================================================
    История чатов
@@ -1324,7 +1343,7 @@ function applyLang(l, anim) {
   if (route) document.title = `${t[route === 'about' ? 'aboutT' : 'teamT']} · UZEX AI`;
   if (was !== l || !anim) {
     if (S.view === 'chat') {
-      if (!S.busy) renderThread();      // идущий ответ не прерываем; язык интерфейса ≠ язык ответа
+      // лента не перерисовывается: ответы агента остаются на языке вопроса
     } else if (anim) replayHero();
     phRestart();
   }
@@ -1346,4 +1365,6 @@ paintIcons();
 applyLang(LS.get('uzex.lang', 'ru') === 'uz' ? 'uz' : 'ru', false);
 // поле собирается сразу, не дожидаясь шрифтов; заголовок ждёт шрифт внутри replayHero
 if (PAGES.includes(location.hash.slice(1))) applyRoute(); else replayHero(true);
+// ссылка вида /?q=вопрос сразу задаёт вопрос
+try { const q0 = new URLSearchParams(location.search).get('q'); if (q0) setTimeout(() => submit(q0), RM ? 0 : 900); } catch {}
 })();

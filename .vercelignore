@@ -3,3 +3,4 @@ data/*.csv
 .venv
 docs
 tests/results
+design

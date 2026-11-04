@@ -450,8 +450,9 @@ function stepHTML(st, i, t) {
     `<pre class="ev-sql">${esc(st.query || '')}</pre>` +
     (r.error ? `<p class="ev-err">${esc(r.error)}</p>` : tableHTML(r.columns || [], r.rows || [], 20)) + `</div>`;
 }
+function ansT(d) { return I18N[d && String(d.language || '').startsWith('uz') ? 'uz' : 'ru']; }
 function addTail(m, rec, instant) {
-  const d = rec.data, t = T();
+  const d = rec.data, t = ansT(d);
   const steps = (d.steps || []).filter(st => st.tool !== 'guard');
   const badge = !d.answerable ? `<span class="tag ev-b ev-no">${t.noData}</span>`
     : d.verified ? `<span class="tag ev-b ev-ok">✓ ${t.verified}</span>` : `<span class="tag ev-b ev-warn">${t.unverified}</span>`;
@@ -975,7 +976,7 @@ function applyLang(l, anim) {
   renderHist();
   if (was !== l || !anim) {
     if (S.view === 'chat') {
-      if (!S.busy) renderThread();      // идущий ответ не прерываем; язык интерфейса ≠ язык ответа
+      // лента не перерисовывается: ответы агента остаются на языке вопроса
     } else if (anim) replayHero();
     phRestart();
   }

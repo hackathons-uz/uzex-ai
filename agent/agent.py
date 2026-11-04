@@ -90,7 +90,7 @@ def _history_block(history):
              "Do not re-check, re-run or repeat earlier answers. Compute every number for the new question with "
              "fresh tool calls; never copy numbers from these earlier answers."]
     for h in history[-3:]:
-        lines.append(f"Q: {h.get('q', '')}\nA: {h.get('a', '')}")
+        lines.append(f"Q: {str(h.get('q', ''))[:2000]}\nA: {str(h.get('a', ''))[:1500]}")
     return "\n".join(lines) + "\n\nNew question:\n"
 
 

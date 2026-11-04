@@ -65,6 +65,7 @@ const I18N = {
     copy: 'Скопировать', copied: 'Скопировано', retry: 'Ответить заново',
     errT: 'Ответ не получен', errP: 'Не удалось связаться с сервером. Проверьте соединение и повторите запрос.', errBtn: 'Повторить',
     errRate: 'Слишком много запросов. Подождите несколько секунд и повторите.',
+    tooLong: (n, max) => `Вопрос слишком длинный: ${n} из ${max} символов. Сократите его до ${max}.`,
     phases: ['Читаю вопрос', 'Ищу в реестре сделок', 'Собираю ответ'],
     st: { read: 'Читаю вопрос', search: 'Ищу', sql: 'Считаю', check: 'Сверяю числа с данными', compose: 'Собираю ответ' },
     kinds: { product: 'товар', company: 'компания', broker: 'брокер' },
@@ -130,6 +131,7 @@ const I18N = {
     copy: 'Nusxa olish', copied: 'Nusxa olindi', retry: 'Qayta javob berish',
     errT: 'Javob olinmadi', errP: 'Server bilan bogʻlanib boʻlmadi. Internet aloqasini tekshirib, soʻrovni takrorlang.', errBtn: 'Takrorlash',
     errRate: 'Soʻrovlar juda koʻp. Bir necha soniya kutib, qayta urinib koʻring.',
+    tooLong: (n, max) => `Savol juda uzun: ${n} / ${max} belgi. Uni ${max} belgigacha qisqartiring.`,
     phases: ['Savolni oʻqiyapman', 'Bitimlar reyestridan qidiryapman', 'Javobni yigʻyapman'],
     st: { read: 'Savolni oʻqiyapman', search: 'Qidiryapman', sql: 'Hisoblayapman', check: 'Raqamlarni tekshiryapman', compose: 'Javobni yigʻyapman' },
     kinds: { product: 'tovar', company: 'kompaniya', broker: 'broker' },
@@ -929,10 +931,26 @@ function phHide() {
   a.onfinish = () => { phI++; phShow(); };
 }
 
+const MAX_Q = 2000;   // тот же лимит проверяет сервер
+let toastT = 0;
+q.addEventListener('input', () => { if (q.value.trim().length <= MAX_Q) form.classList.remove('too-long'); });
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast mono'; el.setAttribute('role', 'alert'); document.body.append(el); }
+  el.textContent = msg;
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 4200);
+}
 function submit(text) {
   if (S.busy) { clearJob(); return; }
   text = (text || '').trim() || curSugg();
   if (!text) return;
+  if (text.length > MAX_Q) {                     // не отправляем и не показываем в ленте; текст остаётся в поле
+    toast(T().tooLong(text.length, MAX_Q));
+    form.classList.remove('too-long'); void form.offsetWidth; form.classList.add('too-long');
+    q.focus({ preventScroll: true });
+    return;
+  }
   q.value = ''; autosize();
   S.msgs.push({ role: 'u', text });
   if (S.view === 'landing') goChat(true, () => setTimeout(() => respond(text), RM ? 0 : 380));

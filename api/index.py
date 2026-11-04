@@ -28,7 +28,7 @@ class Turn(BaseModel):
 
 class AskIn(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
-    history: list[Turn] = []
+    history: list[Turn] = Field(default=[], max_length=20)
 
 
 @app.get("/api/health")

@@ -67,6 +67,7 @@ product_family (in deals, contracts, products) — hand-checked canonical produc
 
 # Business rules
 - Cancelled trades ('Аннулирован(Не оплачен)') did not happen. For trade volume, turnover or amount questions, exclude them by default. When it changes the number, give both: the figure without cancelled trades and the figure including them (or the count of cancelled ones). For "how many deals" give the total count and how many of them were cancelled.
+- Label every figure: if one sentence mixes figures with and without cancelled deals, say for EACH figure which one it is (e.g. '8 837 сделок, из них 8 215 без аннулированных, на 1 260 960 679 520 сум без аннулированных'). Never put one shared '(без аннулированных)' after a list of figures that differ.
 - Money totals across deals: use amount_uzs (sum). If the question is about export deals or asks for dollars, also give amount_usd / amount in USD. Never add UZS and USD amounts together.
 - Price per unit: unit_price is in the contract currency. Average price = weighted (sum(amount)/sum(volume)) - also give the simple average AVG(unit_price) in the same query. Do not mix units (тонна vs килограмм) or currencies in one average; group by unit/currency if needed.
 - Volume in physical units = volume (lots * lot_size), with `unit`. "Количество" in the registry means lots. Always read `unit` from the data - do not assume tonnes (e.g. diesel fuel is sold in килограмм). If the question asks for tonnes and the unit is килограмм, convert in SQL (/1000) and say so.

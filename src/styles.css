@@ -1,0 +1,79 @@
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --text: #16181d;
+  --muted: #6b7280;
+  --border: #e3e6eb;
+  --accent: #0b6b4f;
+  --accent-soft: #e5f3ee;
+  --user: #0b6b4f;
+  --warn: #9a6700;
+  --warn-soft: #fff4d6;
+  --bad: #b42318;
+  --bad-soft: #fde8e7;
+  --code: #f1f3f5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --panel: #171a20;
+    --text: #e8eaee;
+    --muted: #9aa1ad;
+    --border: #2a2f38;
+    --accent: #35c08f;
+    --accent-soft: #15322a;
+    --user: #1f7a5c;
+    --warn: #f0b429;
+    --warn-soft: #3a2f12;
+    --bad: #ff7b72;
+    --bad-soft: #3b1715;
+    --code: #1e222a;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.app { max-width: 900px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; }
+header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 20px 0 12px; border-bottom: 1px solid var(--border); }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.muted { color: var(--muted); font-size: 13px; margin: 0; }
+.lang { display: flex; gap: 4px; }
+.lang button { border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.lang button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+main { flex: 1; padding: 16px 0 140px; display: flex; flex-direction: column; gap: 12px; }
+.examples { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.examples button { text-align: left; border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.examples button:hover { border-color: var(--accent); }
+.msg { padding: 12px 14px; border-radius: 10px; max-width: 100%; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: var(--user); color: #fff; max-width: 80%; white-space: pre-wrap; }
+.msg.agent { align-self: stretch; background: var(--panel); border: 1px solid var(--border); }
+.msg.thinking { color: var(--muted); }
+.msg.error { color: var(--bad); background: var(--bad-soft); }
+.answer { white-space: pre-wrap; font-size: 16px; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--code); }
+.badge.ok { background: var(--accent-soft); color: var(--accent); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.nodata { background: var(--bad-soft); color: var(--bad); }
+.assump { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.link { margin-top: 10px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font: inherit; font-size: 14px; }
+.steps { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.step { border-left: 3px solid var(--border); padding-left: 10px; }
+.step.guard { color: var(--warn); font-size: 13px; }
+.step-h { font-size: 13px; margin-bottom: 4px; }
+pre { background: var(--code); padding: 8px 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; margin: 4px 0; white-space: pre-wrap; }
+.err { color: var(--bad); font-size: 13px; }
+.tbl-wrap { overflow-x: auto; max-width: 100%; }
+table { border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+th, td { border: 1px solid var(--border); padding: 3px 6px; text-align: left; white-space: nowrap; }
+th { background: var(--code); }
+.composer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 8px; max-width: 900px; margin: 0 auto; }
+.composer textarea { flex: 1; resize: none; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font: inherit; background: var(--panel); color: var(--text); }
+.composer button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 0 18px; font: inherit; cursor: pointer; }
+.composer button:disabled { opacity: 0.5; cursor: default; }

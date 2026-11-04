@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 90,
+      "memory": 2048,
+      "includeFiles": "{agent/**,data/db/*.parquet}"
+    }
+  },
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
+}

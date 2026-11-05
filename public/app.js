@@ -622,16 +622,17 @@ function chartSpec(d) {
   return best;
 }
 const CH_L = {
-  ru: { cancPct: 'Доля аннул., %', canc: 'Аннулировано', excl: ' · без аннул.', price: 'Цена', pct: 'Доля, %', vol: 'Объём', sum: 'Сумма', deals: 'Сделки', uzs: ', сум', usd: ', USD' },
-  uz: { cancPct: 'Bekor ulushi, %', canc: 'Bekor qilingan', excl: ' · bekorsiz', price: 'Narx', pct: 'Ulush, %', vol: 'Hajm', sum: 'Summa', deals: 'Bitimlar', uzs: ', soʻm', usd: ', USD' },
+  ru: { cancPct: 'Доля аннул., %', canc: 'Аннулировано', excl: ' · без аннул.', incl: ' · с аннул.', price: 'Цена', pct: 'Доля, %', vol: 'Объём', sum: 'Сумма', deals: 'Сделки', uzs: ', сум', usd: ', USD' },
+  uz: { cancPct: 'Bekor ulushi, %', canc: 'Bekor qilingan', excl: ' · bekorsiz', incl: ' · bekor bilan', price: 'Narx', pct: 'Ulush, %', vol: 'Hajm', sum: 'Summa', deals: 'Bitimlar', uzs: ', soʻm', usd: ', USD' },
 };
 function chName(c, lang) {
   const L = CH_L[lang], excl = /excl|without|non_?cancel|not_?cancel|_net\b|^net/i.test(c);
-  if (!excl && /cancel|annul/i.test(c)) return /pct|share|percent/i.test(c) ? L.cancPct : L.canc;
+  const incl = /incl|with_?cancel|all/i.test(c);
+  if (!excl && !incl && /cancel|annul/i.test(c)) return /pct|share|percent/i.test(c) ? L.cancPct : L.canc;
   const base = /price/i.test(c) ? L.price : /pct|share|percent/i.test(c) ? L.pct : /volume|tonn|hajm/i.test(c) ? L.vol
     : /amount|sum|turnover|total|oborot|uzs|usd/i.test(c) ? L.sum : /deal|count|^n$|cnt|bitim/i.test(c) ? L.deals : null;
   if (!base) return c;
-  return base + (/usd/i.test(c) ? L.usd : /uzs/i.test(c) ? L.uzs : '') + (excl ? L.excl : '');
+  return base + (/usd/i.test(c) ? L.usd : /uzs/i.test(c) ? L.uzs : '') + (excl ? L.excl : incl ? L.incl : '');
 }
 function fmtShort(v, lang) {
   try { return new Intl.NumberFormat(lang === 'uz' ? 'uz-Latn-UZ' : 'ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(v); }

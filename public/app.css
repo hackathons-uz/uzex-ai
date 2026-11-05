@@ -686,3 +686,12 @@ button.ch-tab { cursor: pointer; transition: color var(--dur-fast) var(--ease), 
 @keyframes chFade { from { opacity: 0; } }
 @media (max-width: 640px) { .ch-cv { font-size: .5rem; } }
 .ch-c:last-child .ch-x { left: auto; right: 0; }
+/* «из них» внутри столбика и легенда */
+.ch-c i, .ch-b i { position: relative; overflow: hidden; }
+.ch-c i b { position: absolute; left: 0; right: 0; bottom: 0; height: var(--o); background: var(--blue-l); }
+.ch-b i b { position: absolute; top: 0; bottom: 0; left: 0; width: var(--o); background: var(--blue-l); }
+.ch-leg { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .125rem 0 .5rem; font-size: var(--fs-mono-sm); color: var(--peri-l); text-transform: uppercase; letter-spacing: .04em; }
+.ch-leg span { display: inline-flex; align-items: center; gap: .375rem; }
+.ch-leg i { width: .625rem; height: .625rem; display: inline-block; }
+.ch-leg .lg-a { background: var(--neon); } .ch-leg .lg-o { background: var(--blue-l); }
+.ch-max-bar { position: static; display: block; margin-bottom: .375rem; }

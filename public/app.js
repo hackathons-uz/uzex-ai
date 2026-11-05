@@ -638,30 +638,54 @@ function fmtShort(v, lang) {
   try { return new Intl.NumberFormat(lang === 'uz' ? 'uz-Latn-UZ' : 'ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(v); }
   catch { return String(v); }
 }
+// одна шкала для однородных величин: сделки с аннулированными, суммы с суммами
+function chKind(c) {
+  if (/price/i.test(c)) return 'price';
+  if (/pct|share|percent/i.test(c)) return 'pct';
+  if (/volume|tonn|hajm/i.test(c)) return 'vol';
+  if (/amount|sum|turnover|total|oborot|uzs|usd/i.test(c)) return 'sum' + (/usd/i.test(c) ? ':usd' : '');
+  if (/deal|count|^n$|cnt|bitim|cancel|annul/i.test(c)) return 'cnt';
+  return 'x:' + c;
+}
+const chIsCancel = c => /cancel|annul/i.test(c) && !/excl|without|non_?cancel|not_?cancel|incl|with_?cancel|all/i.test(c);
 function chartBlock(d, mk) {
   const sp = chartSpec(d); if (!sp) return '';
   const lang = String(d.language || '').startsWith('uz') ? 'uz' : 'ru';
   mk = Math.min(mk || 0, sp.metrics.length - 1);
-  const ci = sp.metrics[mk], vals = sp.rows.map(x => isNum(x[ci]) ? x[ci] : 0);
-  const max = Math.max(...vals.map(Math.abs)) || 1;
+  const col = i => sp.rows.map(x => isNum(x[i]) ? x[i] : 0);
+  const ci = sp.metrics[mk], vals = col(ci), kind = chKind(sp.cols[ci]);
+  const same = sp.metrics.filter(m => chKind(sp.cols[m]) === kind);
+  // часть целого (аннулированные) — на своей шкале, иначе столбики почти не видны; это подписано
+  const ownScale = chIsCancel(sp.cols[ci]) && same.some(m => m !== ci && !chIsCancel(sp.cols[m]));
+  const max = Math.max(...(ownScale ? vals.map(Math.abs) : same.flatMap(m => col(m).map(Math.abs)))) || 1;
+  // «из них»: аннулированные внутри основного столбика той же величины
+  let ov = null;
+  if (!chIsCancel(sp.cols[ci]) && !/excl|without|non_?cancel|not_?cancel/i.test(sp.cols[ci])) {
+    const om = same.find(m => m !== ci && chIsCancel(sp.cols[m]) && col(m).every((v, k) => Math.abs(v) <= Math.abs(vals[k]) + 1e-9));
+    if (om !== undefined) ov = { k: sp.metrics.indexOf(om), vals: col(om) };
+  }
   const seen = new Set();
   const names = sp.metrics.map(m => { let n = chName(sp.cols[m], lang); if (seen.has(n)) n = sp.cols[m]; seen.add(n); return n; });
   const tabs = `<div class="ch-tabs">` + sp.metrics.map((m, k) => sp.metrics.length > 1
     ? `<button type="button" class="ch-tab mono" data-act="chm" data-k="${k}" aria-pressed="${k === mk}">${esc(names[k])}</button>`
     : `<span class="ch-tab mono" aria-pressed="true">${esc(names[k])}</span>`).join('') + `</div>`;
+  const legend = ov ? `<div class="ch-leg mono"><span><i class="lg-a"></i>${esc(names[mk])}</span><span><i class="lg-o"></i>${lang === 'uz' ? 'shundan' : 'из них'} ${esc(names[ov.k].toLowerCase())}</span></div>` : '';
+  const seg = k => ov && vals[k] ? `<b style="--o:${(Math.abs(ov.vals[k]) / Math.abs(vals[k]) * 100).toFixed(2)}%"></b>` : '';
+  const tip = k => `${sp.labels[k]}: ${fmtShort(vals[k], lang)}` + (ov ? ` · ${names[ov.k].toLowerCase()} ${fmtShort(ov.vals[k], lang)}` : '');
   let body;
   if (sp.time) {
     const n = vals.length, every = Math.ceil(n / 10), showV = n <= 16;
-    const maxLbl = showV ? '' : `<span class="ch-max mono">max ${esc(fmtShort(max, lang))}</span>`;
+    const maxLbl = ownScale ? `<span class="ch-max mono">${lang === 'uz' ? 'oʻz shkalasi' : 'своя шкала'} · ${lang === 'uz' ? 'gacha' : 'до'} ${esc(fmtShort(max, lang))}</span>`
+      : showV ? '' : `<span class="ch-max mono">max ${esc(fmtShort(max, lang))}</span>`;
     body = `<div class="ch ch-col${showV ? ' ch-vals' : ''}" style="--n:${n}">${maxLbl}` + vals.map((v, k) =>
-      `<div class="ch-c" style="--h:${(Math.abs(v) / max * 100).toFixed(2)}%" data-tip="${esc(sp.labels[k])}: ${esc(fmtShort(v, lang))}"><i></i>` +
+      `<div class="ch-c" style="--h:${(Math.abs(v) / max * 100).toFixed(2)}%" data-tip="${esc(tip(k))}"><i>${seg(k)}</i>` +
       (showV ? `<span class="ch-cv mono">${esc(fmtShort(v, lang))}</span>` : '') +
       `<span class="ch-x mono">${k % every === 0 || (k === n - 1 && (n - 1) % every >= Math.ceil(every / 2)) ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
   } else {
-    body = `<div class="ch ch-bar">` + vals.map((v, k) =>
-      `<div class="ch-r"><span class="ch-l" title="${esc(sp.labels[k])}">${esc(sp.labels[k])}</span><span class="ch-b"><i style="--w:${(Math.abs(v) / max * 100).toFixed(2)}%"></i></span><span class="ch-v mono">${esc(fmtShort(v, lang))}</span></div>`).join('') + `</div>`;
+    body = `<div class="ch ch-bar">` + (ownScale ? `<span class="ch-max ch-max-bar mono">${lang === 'uz' ? 'oʻz shkalasi' : 'своя шкала'}</span>` : '') + vals.map((v, k) =>
+      `<div class="ch-r" title="${esc(tip(k))}"><span class="ch-l">${esc(sp.labels[k])}</span><span class="ch-b"><i style="--w:${(Math.abs(v) / max * 100).toFixed(2)}%">${seg(k)}</i></span><span class="ch-v mono">${esc(fmtShort(v, lang))}</span></div>`).join('') + `</div>`;
   }
-  return `<div class="m-chart">${tabs}${body}</div>`;
+  return `<div class="m-chart">${tabs}${legend}${body}</div>`;
 }
 function ansT(d) { return I18N[d && String(d.language || '').startsWith('uz') ? 'uz' : 'ru']; }
 function addTail(m, rec, instant) {

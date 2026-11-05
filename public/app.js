@@ -57,6 +57,7 @@ function paintIcons(root = document) { root.querySelectorAll('[data-icon]').forE
 /* ---------- тексты ---------- */
 const I18N = {
   ru: {
+    docTitle: 'UZEX AI помощник',
     t1: 'Спросите', t2: 'про {w}', rw: ['сделки', 'цены', 'объёмы', 'брокеров', 'покупателей', 'продавцов', 'контракты', 'экспорт', 'регионы'],
     history: 'История', newChat: 'Новый чат', close: 'Закрыть', lang: 'Язык интерфейса',
     ask: 'Ваш вопрос', send: 'Отправить', stop: 'Остановить ответ',
@@ -136,6 +137,7 @@ const I18N = {
     },
   },
   uz: {
+    docTitle: 'UZEX AI yordamchi',
     t1: '{w} haqida', t2: 'soʻrang', rw: ['Bitimlar', 'Narxlar', 'Hajmlar', 'Brokerlar', 'Xaridorlar', 'Sotuvchilar', 'Shartnomalar', 'Eksport', 'Viloyatlar'],
     history: 'Tarix', newChat: 'Yangi chat', close: 'Yopish', lang: 'Interfeys tili',
     ask: 'Savolingiz', send: 'Yuborish', stop: 'Javobni toʻxtatish',
@@ -1199,7 +1201,7 @@ function applyRoute() {
   } else {
     app.classList.remove('is-page');
     document.querySelectorAll('[data-page]').forEach(l => l.setAttribute('aria-current', 'false'));
-    document.title = BASE_TITLE;
+    document.title = T().docTitle;
     if (S.view === 'landing') replayHero(true);
   }
 }
@@ -1340,7 +1342,7 @@ function applyLang(l, anim) {
   lg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === l)));
   setBusy(S.busy);
   renderHist(); renderPage();
-  if (route) document.title = `${t[route === 'about' ? 'aboutT' : 'teamT']} · UZEX AI`;
+  document.title = route ? `${t[route === 'about' ? 'aboutT' : 'teamT']} · UZEX AI` : t.docTitle;
   if (was !== l || !anim) {
     if (S.view === 'chat') {
       // лента не перерисовывается: ответы агента остаются на языке вопроса

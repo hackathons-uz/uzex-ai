@@ -679,3 +679,10 @@ button.ch-tab { cursor: pointer; transition: color var(--dur-fast) var(--ease), 
 @media (hover: hover) { .fu-btn:hover { box-shadow: inset 0 0 0 1px var(--neon); color: var(--neon); } }
 .fu-btn:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
 .is-busy .fu-btn { opacity: .5; pointer-events: none; }
+.ch-col { position: relative; }
+.ch-cv { position: absolute; left: 0; right: 0; bottom: calc(var(--h) + .3125rem); text-align: center; font-size: .625rem; color: var(--white); white-space: nowrap; pointer-events: none; animation: chFade .5s var(--ease) .2s both; }
+.ch-vals .ch-c::after { display: none; }          /* значения уже подписаны — всплывашка не нужна */
+.ch-max { position: absolute; top: .5rem; left: .875rem; font-size: .5625rem; color: var(--peri-l); }
+@keyframes chFade { from { opacity: 0; } }
+@media (max-width: 640px) { .ch-cv { font-size: .5rem; } }
+.ch-c:last-child .ch-x { left: auto; right: 0; }

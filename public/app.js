@@ -596,7 +596,7 @@ const CH_ID = /(^|_)(inn|stir|id|code)$/i;
 const isNum = v => typeof v === 'number' && isFinite(v);
 function chartSpec(d) {
   const steps = (d.steps || []).filter(st => st.tool === 'run_sql' && st.result && !st.result.error);
-  let best = null;
+  let best = null, bestTime = null;
   for (let k = steps.length - 1; k >= 0; k--) {
     const cols = steps[k].result.columns || [], rows = steps[k].result.rows || [];
     if (rows.length < 2 || rows.length > 60) continue;
@@ -616,10 +616,10 @@ function chartSpec(d) {
       rows.every(x => x[i] === null || isNum(x[i])) && rows.some(x => isNum(x[i]) && x[i] !== 0));
     if (!metrics.length) continue;
     const sp = { time, labels: rows.map(labelOf), cols, rows, metrics };
-    if (time) return sp;            // динамика важнее любого другого запроса
-    if (!best) best = sp;
+    if (time) { if (!bestTime || rows.length > bestTime.rows.length) bestTime = sp; }   // динамика: самый подробный ряд
+    else if (!best) best = sp;
   }
-  return best;
+  return bestTime || best;
 }
 const CH_L = {
   ru: { cancPct: 'Доля аннул., %', canc: 'Аннулировано', excl: ' · без аннул.', incl: ' · с аннул.', price: 'Цена', pct: 'Доля, %', vol: 'Объём', sum: 'Сумма', deals: 'Сделки', uzs: ', сум', usd: ', USD' },
@@ -651,10 +651,12 @@ function chartBlock(d, mk) {
     : `<span class="ch-tab mono" aria-pressed="true">${esc(names[k])}</span>`).join('') + `</div>`;
   let body;
   if (sp.time) {
-    const n = vals.length, every = Math.ceil(n / 10);
-    body = `<div class="ch ch-col" style="--n:${n}">` + vals.map((v, k) =>
+    const n = vals.length, every = Math.ceil(n / 10), showV = n <= 16;
+    const maxLbl = showV ? '' : `<span class="ch-max mono">max ${esc(fmtShort(max, lang))}</span>`;
+    body = `<div class="ch ch-col${showV ? ' ch-vals' : ''}" style="--n:${n}">${maxLbl}` + vals.map((v, k) =>
       `<div class="ch-c" style="--h:${(Math.abs(v) / max * 100).toFixed(2)}%" data-tip="${esc(sp.labels[k])}: ${esc(fmtShort(v, lang))}"><i></i>` +
-      `<span class="ch-x mono">${k % every === 0 || k === n - 1 ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
+      (showV ? `<span class="ch-cv mono">${esc(fmtShort(v, lang))}</span>` : '') +
+      `<span class="ch-x mono">${k % every === 0 || (k === n - 1 && (n - 1) % every >= Math.ceil(every / 2)) ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
   } else {
     body = `<div class="ch ch-bar">` + vals.map((v, k) =>
       `<div class="ch-r"><span class="ch-l" title="${esc(sp.labels[k])}">${esc(sp.labels[k])}</span><span class="ch-b"><i style="--w:${(Math.abs(v) / max * 100).toFixed(2)}%"></i></span><span class="ch-v mono">${esc(fmtShort(v, lang))}</span></div>`).join('') + `</div>`;

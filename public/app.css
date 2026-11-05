@@ -436,6 +436,9 @@ body:has(.is-page) #edges { opacity: .3; }
 .demo-list button[aria-checked="true"] { background: var(--neon); color: var(--ink); }
 .demo-list button[aria-checked="true"] kbd { color: var(--ink); box-shadow: inset 0 0 0 1px rgba(12,16,51,.4); }
 @media (hover: hover) and (pointer: fine) { .demo-list button[aria-checked="false"]:hover { background: var(--fill-06); color: var(--white); } }
+.demo-list button[aria-pressed="true"] { background: var(--neon); color: var(--ink); }
+.demo-list button[aria-pressed="true"] kbd { color: var(--ink); box-shadow: inset 0 0 0 1px rgba(12,16,51,.4); }
+@media (hover: hover) and (pointer: fine) { .demo-list button[aria-pressed="false"]:hover { background: var(--fill-06); color: var(--white); } }
 .demo-api { margin-top: .5rem; border-top: 1px solid var(--line); }
 .demo-api summary { cursor: pointer; padding: .625rem .5rem .25rem; font-size: .6875rem; list-style: none; }
 .demo-api summary::-webkit-details-marker { display: none; }
@@ -563,19 +566,56 @@ details.ev[data-only="18"] .ev-s[data-i="18"] { display: block; }
 details.ev[data-only="19"] .ev-s[data-i="19"] { display: block; }
 
 
-/* Уведомление: вопрос длиннее лимита */
-.toast {
-  position: fixed; left: 50%; bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); z-index: 60;
-  max-width: min(36rem, calc(100vw - 2rem)); padding: .875rem 1rem;
-  background: var(--danger); color: var(--ink); font-size: .8125rem; font-weight: 600; line-height: 1.45; letter-spacing: .01em;
-  box-shadow: var(--shadow-pop);
-  transform: translate(-50%, 1rem); opacity: 0; pointer-events: none;
-  transition: opacity var(--dur-fast) var(--ease), transform var(--dur) var(--ease);
+/* =================== Тосты ===================
+   Под верхней панелью, по центру колонки. Плашка собирается из пикселей (app.js → wipe):
+   пока идёт волна, у тоста прозрачный фон (.px), содержимое проявляется из блюра, как текст заголовка. */
+.toasts {
+  position: fixed; z-index: 60; left: calc(50% + var(--rail) / 2); top: calc(4.25rem + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%); width: max-content; max-width: calc(100vw - 2rem);
+  display: flex; flex-direction: column; align-items: center; gap: .375rem; pointer-events: none;
 }
-.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.toast {
+  --tb: var(--danger);
+  position: relative; display: flex; align-items: center; gap: .75rem;
+  max-width: min(36rem, calc(100vw - 2rem)); padding: .75rem 1rem .75rem .875rem;
+  background: var(--tb); color: var(--ink); box-shadow: var(--shadow-pop);
+  font: 600 .75rem/1.45 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+.toast-off { --tb: var(--white); }
+.toast-ok { --tb: var(--neon); }
+.toast-info { --tb: var(--peri); }
+.toast > :not(canvas) { transition: opacity .3s var(--ease), transform .45s var(--ease), filter .3s var(--ease); }
+.toast.px { background: transparent; box-shadow: none; }
+.toast.px > :not(canvas), .toast.hush > :not(canvas) { opacity: 0; transform: translateY(.16em); filter: blur(4px); transition-duration: .12s; }
+.toast-fx { position: absolute; left: 0; top: 0; pointer-events: none; }
+.toast-i { flex: 0 0 auto; display: inline-flex; }
+.toast-i svg { width: 1rem; height: 1rem; fill: currentColor; shape-rendering: crispEdges; display: block; }
+.toast-err .toast-i, .toast-info .toast-i { color: var(--ink); }
+.toast-m { min-width: 0; overflow-wrap: anywhere; }
+
+/* Деления сигнала: без сети — «ищут» красной волной, при возврате — заполняются по очереди */
+.sig { --sd: rgba(12,16,51,.16); display: grid; grid-template-columns: repeat(4, .3125rem); gap: .125rem; align-self: center; }
+.sig i { width: .3125rem; height: .3125rem; background: var(--ink); }
+.sig i.x { visibility: hidden; }
+.toast-off .sig i, .m-err-off .sig i { background: var(--sd); animation: sigScan 1.6s steps(1) infinite; animation-delay: calc(var(--c) * 200ms); }
+@keyframes sigScan { 0% { background: var(--danger); } 25%, 100% { background: var(--sd); } }
+.toast-ok .sig i { animation: sigUp calc(var(--c) * 90ms + 300ms) steps(1, end) both; }
+@keyframes sigUp { 0% { background: var(--sd); } 100% { background: var(--ink); } }
+.m-err-off .sig { --sd: var(--fill-26); margin-right: .125rem; }
+.m-err-off .mono::before { display: none; }
+
+/* без сети кнопка отправки гаснет: видно, что вопрос сейчас не уйдёт */
+.is-off:not(.is-busy) .send { background: var(--fill-26); color: var(--white); }
+
 .ask.too-long { animation: tooLong .42s var(--ease); box-shadow: inset 0 0 0 var(--stroke) var(--danger); }
 @keyframes tooLong { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
-@media (prefers-reduced-motion: reduce) { .ask.too-long { animation: none; } .toast { transition: none; } }
+@media (max-width: 760px) { .toasts { top: calc(3.625rem + env(safe-area-inset-top, 0px)); } }
+@media (prefers-reduced-motion: reduce) {
+  .ask.too-long, .sig i { animation: none !important; }
+  .toast-off .sig i[style="--c:0"], .m-err-off .sig i[style="--c:0"] { background: var(--danger); }   /* статично: одно деление */
+  .toast > :not(canvas) { transition: opacity .2s ease; transform: none !important; filter: none !important; }
+}
 
 /* Страница «О решении»: шаги, цифры проверки, технологии */
 .page-steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: grid; gap: .375rem; }

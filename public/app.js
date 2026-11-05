@@ -38,6 +38,7 @@ const BM = {
   heart: ['.##.##.','#######','#######','.#####.','..###..','...#...'],
   back:  ['....##....','...##.....','..##......','.##.......','##########','##########','.##.......','..##......','...##.....','....##....'],
   chev:  ['..##....','...##...','....##..','.....##.','.....##.','....##..','...##...','..##....'],
+  warn:  ['....##....','....##....','....##....','....##....','....##....','....##....','..........','..........','....##....','....##....'],
   doc:   ['######..','#....##.','#.....##','#.##...#','#......#','#.####.#','#......#','#.####.#','#......#','########'],
 };
 function svg(name) {
@@ -66,6 +67,14 @@ const I18N = {
     copy: 'Скопировать', copied: 'Скопировано', retry: 'Ответить заново',
     errT: 'Ответ не получен', errP: 'Не удалось связаться с сервером. Проверьте соединение и повторите запрос.', errBtn: 'Повторить',
     errRate: 'Слишком много запросов. Подождите несколько секунд и повторите.',
+    errOffT: 'Нет сети', errOff: 'Связь пропала во время ответа. Повторим вопрос сами, когда интернет вернётся.',
+    errTimeout: 'Сервер слишком долго не отвечает. Повторите запрос или задайте вопрос проще.',
+    errServer: 'На сервере произошла ошибка. Повторите запрос через несколько секунд.',
+    errBreak: 'Соединение оборвалось во время ответа. Повторите запрос.',
+    errBad: 'Сервер не принял запрос. Измените вопрос и попробуйте снова.',
+    off: 'Нет интернета · жду подключения', backOn: 'Соединение восстановлено', backOnRetry: 'Соединение восстановлено · повторяю вопрос',
+    copyFail: 'Не удалось скопировать. Выделите текст вручную.',
+    noSave: 'История не сохраняется: хранилище браузера недоступно или заполнено.',
     tooLong: (n, max) => `Вопрос слишком длинный: ${n} из ${max} символов. Сократите его до ${max}.`,
     phases: ['Читаю вопрос', 'Ищу в реестре сделок', 'Собираю ответ'],
     st: { read: 'Читаю вопрос', search: 'Ищу', sql: 'Считаю', check: 'Сверяю числа с данными', compose: 'Собираю ответ' },
@@ -146,6 +155,14 @@ const I18N = {
     copy: 'Nusxa olish', copied: 'Nusxa olindi', retry: 'Qayta javob berish',
     errT: 'Javob olinmadi', errP: 'Server bilan bogʻlanib boʻlmadi. Internet aloqasini tekshirib, soʻrovni takrorlang.', errBtn: 'Takrorlash',
     errRate: 'Soʻrovlar juda koʻp. Bir necha soniya kutib, qayta urinib koʻring.',
+    errOffT: 'Tarmoq yoʻq', errOff: 'Javob paytida aloqa uzildi. Internet qaytganda savolni oʻzimiz qayta yuboramiz.',
+    errTimeout: 'Server juda uzoq javob bermayapti. Soʻrovni takrorlang yoki savolni soddaroq yozing.',
+    errServer: 'Serverda xatolik yuz berdi. Bir necha soniyadan soʻng soʻrovni takrorlang.',
+    errBreak: 'Javob paytida aloqa uzilib qoldi. Soʻrovni takrorlang.',
+    errBad: 'Server soʻrovni qabul qilmadi. Savolni oʻzgartirib, qayta urinib koʻring.',
+    off: 'Internet yoʻq · ulanishni kutyapman', backOn: 'Aloqa tiklandi', backOnRetry: 'Aloqa tiklandi · savolni qayta yuboryapman',
+    copyFail: 'Nusxa olib boʻlmadi. Matnni qoʻlda belgilang.',
+    noSave: 'Tarix saqlanmayapti: brauzer xotirasi mavjud emas yoki toʻlgan.',
     tooLong: (n, max) => `Savol juda uzun: ${n} / ${max} belgi. Uni ${max} belgigacha qisqartiring.`,
     phases: ['Savolni oʻqiyapman', 'Bitimlar reyestridan qidiryapman', 'Javobni yigʻyapman'],
     st: { read: 'Savolni oʻqiyapman', search: 'Qidiryapman', sql: 'Hisoblayapman', check: 'Raqamlarni tekshiryapman', compose: 'Javobni yigʻyapman' },
@@ -224,6 +241,9 @@ const LS = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
 };
 let CHATS = LS.get('uzex.chats', []);           // [{ id, title, updated_at, msgs }]
+if (!Array.isArray(CHATS)) CHATS = [];           // битая запись в хранилище не должна ронять интерфейс
+CHATS = CHATS.filter(c => c && typeof c.id === 'string' && Array.isArray(c.msgs));
+let saveWarned = false;
 function slimData(d) {                            // таблицы режем, чтобы история влезла в localStorage
   return { ...d, steps: (d.steps || []).map(st => {
     const r = st.result || {};
@@ -242,7 +262,9 @@ function saveChat() {
   CHATS = CHATS.filter(c => c.id !== S.chat);
   CHATS.unshift({ id: S.chat, title: title.slice(0, 80), updated_at: new Date().toISOString(), msgs });
   CHATS = CHATS.slice(0, 40);
-  while (!LS.set('uzex.chats', CHATS) && CHATS.length > 1) CHATS.pop();
+  let ok = LS.set('uzex.chats', CHATS);
+  while (!ok && CHATS.length > 1) { CHATS.pop(); ok = LS.set('uzex.chats', CHATS); }
+  if (!ok && !saveWarned) { saveWarned = true; toast(() => T().noSave, { kind: 'info', id: 'save', ms: 5200 }); }
   renderHist();
 }
 
@@ -586,10 +608,15 @@ function addTail(m, rec, instant) {
   if (!instant) requestAnimationFrame(() => requestAnimationFrame(() => tail.classList.add('on')));
 }
 function elAnswer(rec) { const m = elAsst(); m.querySelector('.m-txt').innerHTML = blocksHTML(rec.data); addTail(m, rec, true); return m; }
+/* код ошибки → [заголовок, текст]; network — запасной вариант */
+const ERR = {
+  offline: ['errOffT', 'errOff'], network: ['errT', 'errP'], timeout: ['errT', 'errTimeout'], rate_limit: ['errT', 'errRate'],
+  server: ['errT', 'errServer'], interrupted: ['errT', 'errBreak'], bad_request: ['errT', 'errBad'],
+};
 function elError(rec) {
-  const m = elAsst(), t = T();
-  const p = rec && rec.code === 'rate_limit' ? t.errRate : t.errP;
-  m.querySelector('.m-txt').innerHTML = `<div class="m-err"><span class="mono">${t.errT}</span><p>${p}</p><button class="btn btn-g btn-s" type="button" data-act="again">${t.errBtn}</button></div>`;
+  const m = elAsst(), t = T(), code = rec && ERR[rec.code] ? rec.code : 'network', [h, p] = ERR[code];
+  const off = code === 'offline';
+  m.querySelector('.m-txt').innerHTML = `<div class="m-err${off ? ' m-err-off' : ''}"><span class="mono">${off ? sigHTML() : ''}${t[h]}</span><p>${t[p]}</p><button class="btn btn-g btn-s" type="button" data-act="again">${t.errBtn}</button></div>`;
   return m;
 }
 
@@ -658,7 +685,15 @@ function parseSSE(chunk) {
     if (l.startsWith('event:')) ev = l.slice(6).trim();
     else if (l.startsWith('data:')) data += l.slice(5).trim();
   });
-  return data ? [ev, JSON.parse(data)] : null;
+  if (!data) return null;
+  try { return [ev, JSON.parse(data)]; } catch { return null; }   // битый кусок пропускаем, а не роняем ответ
+}
+// сервер шлёт keep-alive каждые 10 с, ответ укладывается в 90 с: 45 с полной тишины — соединение мёртвое
+const IDLE_MS = 45000;
+function httpCode(s) {
+  if (s === 429) return 'rate_limit';
+  if (s === 408 || s === 504) return 'timeout';
+  return s >= 400 && s < 500 ? 'bad_request' : 'server';
 }
 async function respond(question) {
   const hist = historyPairs();
@@ -667,40 +702,52 @@ async function respond(question) {
   const m = elAsst(); threadIn.append(m); toBottom(true);
   job = newJob(); setBusy(true);
   const my = job, ctrl = new AbortController();
-  job.onCancel = () => ctrl.abort();
+  let why = 'user', got = false, idle = 0;              // why: кто оборвал запрос; got: пришёл ли хоть байт
+  const stop = r => { why = r; ctrl.abort(); };
+  const poke = () => { clearTimeout(idle); idle = setTimeout(() => stop('timeout'), IDLE_MS); };
+  job.onCancel = () => stop('user');
+  job.onOffline = () => stop('offline');               // сеть пропала: не ждём, пока браузер сам сдастся
   const label = thinking(m.querySelector('.m-txt'));
   let result = null, err = null;
+  poke();
   try {
     const r = await fetch('/api/chat', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, history: hist }), signal: ctrl.signal,
     });
-    if (!r.ok || !r.body) throw { code: r.status === 429 ? 'rate_limit' : 'server' };
+    if (!r.ok || !r.body) throw { code: httpCode(r.status) };
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = '';
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
+      got = true; poke();
       buf += dec.decode(value, { stream: true });
       let k;
       while ((k = buf.indexOf('\n\n')) >= 0) {
         const ev = parseSSE(buf.slice(0, k)); buf = buf.slice(k + 2);
         if (!ev) continue;
-        if (ev[0] === 'status' && job === my) label(stageText(ev[1]));
+        if (ev[0] === 'status' && job === my) label(stageText(ev[1] || {}));
         else if (ev[0] === 'done') result = ev[1];
         else if (ev[0] === 'error') err = ev[1];
       }
     }
+    if (!result && !err) err = { code: 'interrupted' };  // поток закрылся без ответа
   } catch (e) {
-    if (e && e.name === 'AbortError') {          // пользователь нажал «стоп»
+    if (e && e.name === 'AbortError' && why === 'user') { // пользователь нажал «стоп»
+      clearTimeout(idle);
       const i = S.msgs.indexOf(rec); if (i >= 0) S.msgs.splice(i, 1);
       m.remove();
       return;
     }
-    err = e && e.code ? e : { code: 'server' };
+    // свои ошибки бросаем как { code: 'строка' }; у DOMException code числовой — его не берём
+    err = e && typeof e.code === 'string' ? e
+      : { code: why !== 'user' ? why : !navigator.onLine ? 'offline' : got ? 'interrupted' : 'network' };
   }
+  clearTimeout(idle);
   if (job !== my) return;
-  if (!result) {
+  job.onOffline = null;
+  if (!result || typeof result !== 'object') {
     const er = { role: 'err', q: question, code: (err && err.code) || 'server' };
     S.msgs[S.msgs.indexOf(rec)] = er;
     m.replaceWith(elError(er));
@@ -961,22 +1008,155 @@ function phHide() {
 }
 
 const MAX_Q = 2000;   // тот же лимит проверяет сервер
-let toastT = 0;
 q.addEventListener('input', () => { if (q.value.trim().length <= MAX_Q) form.classList.remove('too-long'); });
-function toast(msg) {
-  let el = document.getElementById('toast');
-  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast mono'; el.setAttribute('role', 'alert'); document.body.append(el); }
-  el.textContent = msg;
-  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 4200);
+
+/* =========================================================
+   Тосты: плашка собирается из пикселей слева направо (как заголовок),
+   при смене состояния перекрашивается пиксельной волной (как сменяемое слово),
+   при закрытии рассыпается тем же путём. Один тост на id: повтор — встряска.
+   kind: err (красная), off (белая, нет сети), ok (неон), info (перивинкл).
+   ========================================================= */
+const TST = new Map();                          // id → { el, kind, msg, timer, q }
+const T_PLATE = { err: '--danger', off: '--white', ok: '--neon', info: '--peri' };
+const T_ACC = { err: ['#FFFFFF', '#FFB3C1'], off: ['#C9D3FF', '#5E79E8'], ok: ['#9EF7C4', '#FFFFFF'], info: ['#FFFFFF', '#5E79E8'] };
+let tstBox = null;
+const plate = k => getComputedStyle(document.documentElement).getPropertyValue(T_PLATE[k]).trim() || '#FFFFFF';
+// пиксельные «деления сигнала»: 4 столбика, у столбика c высота c+1
+function sigHTML() {
+  let h = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) h += r >= 3 - c ? `<i style="--c:${c}"></i>` : '<i class="x"></i>';
+  return `<span class="sig" aria-hidden="true">${h}</span>`;
 }
+function tIcon(t) { t.el.querySelector('.toast-i').innerHTML = t.kind === 'off' || t.kind === 'ok' ? sigHTML() : svg('warn'); }
+function tText(t) { t.el.querySelector('.toast-m').textContent = t.msg(); }
+function tRole(t) { t.el.setAttribute('role', t.kind === 'err' || t.kind === 'off' ? 'alert' : 'status'); }
+/* Пиксельная волна по плашке. mode 'in': клетки цвета color появляются, 'out': исчезают.
+   Передний край волны подсвечен акцентами. Резолвит холст (его снимает вызывающий) или null. */
+function wipe(el, mode, color, acc, dur, onStart) {
+  return new Promise(res => {
+    const w = el.offsetWidth, h = el.offsetHeight;
+    if (RM || !w || !h) { if (onStart) onStart(); return res(null); }
+    const dpr = Math.min(2, devicePixelRatio || 1), cell = LOW ? 9 : 7, F = .14;
+    const cv = document.createElement('canvas'); cv.className = 'toast-fx'; cv.setAttribute('aria-hidden', 'true');
+    cv.width = Math.ceil(w * dpr); cv.height = Math.ceil(h * dpr); cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cells = [];
+    for (let y = 0; y < h; y += cell) for (let x = 0; x < w; x += cell)
+      cells.push({ x, y, t: x / w * .7 + rnd() * .3, a: acc[(rnd() * acc.length) | 0] });
+    const draw = k => {
+      c.clearRect(0, 0, w, h);
+      for (const p of cells) {
+        if (mode === 'in' ? p.t >= k : p.t < k) continue;
+        c.fillStyle = Math.abs(k - p.t) < F ? p.a : color;
+        c.fillRect(p.x, p.y, cell + .5, cell + .5);
+      }
+    };
+    draw(0); el.append(cv); if (onStart) onStart();
+    const t0 = performance.now();
+    run(now => {
+      if (!cv.isConnected) { res(null); return false; }
+      const p = Math.min(1, (now - t0) / dur);
+      draw(p * (1 + F));
+      if (p < 1) return true;
+      res(cv); return false;
+    });
+  });
+}
+function toast(msg, o = {}) {
+  const kind = o.kind || 'err', id = o.id || kind, text = typeof msg === 'function' ? msg : () => msg;
+  if (!tstBox) {
+    tstBox = document.createElement('div'); tstBox.className = 'toasts';
+    document.body.append(tstBox);
+  }
+  let t = TST.get(id);
+  if (t) {
+    clearTimeout(t.timer); t.msg = text;
+    if (t.kind === kind) {                       // то же состояние ещё раз: обновить текст и встряхнуть
+      tText(t);
+      if (!RM) t.el.animate([{ transform: 'none' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 420, easing: 'ease-out' });
+    } else {                                     // другое состояние: перекрасить плашку пиксельной волной
+      const from = t.kind; t.kind = kind;
+      t.q = t.q.then(() => {
+        const el = t.el; el.classList.add('hush');
+        return wipe(el, 'in', plate(kind), T_ACC[kind], 300).then(cv => {
+          const w0 = el.offsetWidth;
+          el.classList.replace('toast-' + from, 'toast-' + t.kind); tRole(t); tIcon(t); tText(t);
+          const w1 = el.offsetWidth;
+          if (cv) cv.remove();
+          el.classList.remove('hush');
+          if (!RM && Math.abs(w1 - w0) > 1) el.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: 220, easing: IO });
+        });
+      });
+    }
+  } else {
+    const el = document.createElement('div');
+    el.className = `toast toast-${kind} px`;
+    el.innerHTML = '<span class="toast-i" aria-hidden="true"></span><span class="toast-m"></span>';
+    t = { id, kind, msg: text, el, timer: 0 };
+    tRole(t); tIcon(t); tText(t);
+    TST.set(id, t);
+    tstBox.append(el);
+    t.q = wipe(el, 'in', plate(kind), T_ACC[kind], 300).then(cv => { el.classList.remove('px'); if (cv) cv.remove(); });
+  }
+  if (!o.sticky) t.timer = setTimeout(() => closeToast(id), o.ms || 4200);
+  return t;
+}
+function closeToast(id) {
+  const t = TST.get(id); if (!t) return;
+  TST.delete(id); clearTimeout(t.timer);
+  t.q = t.q.then(() => new Promise(res => {
+    const el = t.el;
+    const gone = () => {
+      // остальные тосты подъезжают плавно, без скачка
+      if (RM || !el.nextElementSibling) { el.remove(); return res(); }
+      el.style.overflow = 'hidden';
+      el.animate([{ height: el.offsetHeight + 'px' }, { height: '0px', paddingTop: '0px', paddingBottom: '0px', marginTop: '-.375rem' }],
+        { duration: 200, easing: OUT, fill: 'forwards' }).onfinish = () => { el.remove(); res(); };
+    };
+    el.classList.add('hush');
+    if (RM) return gone();
+    setTimeout(() => wipe(el, 'out', plate(t.kind), T_ACC[t.kind], 260, () => el.classList.add('px'))
+      .then(cv => { if (cv) cv.remove(); gone(); }), 110);
+  }));
+}
+
+/* ---------- сеть: офлайн-тост, блок отправки, автоповтор после возврата ---------- */
+function offlineToast() { toast(() => T().off, { kind: 'off', id: 'net', sticky: true }); }
+function netState() { app.classList.toggle('is-off', !navigator.onLine); }
+addEventListener('offline', () => {
+  netState(); offlineToast();
+  if (job && job.onOffline) job.onOffline();
+});
+addEventListener('online', () => {
+  netState();
+  const last = S.msgs[S.msgs.length - 1];
+  const auto = !S.busy && last && last.role === 'err' && last.code === 'offline';
+  if (TST.has('net') || auto) toast(() => T()[auto ? 'backOnRetry' : 'backOn'], { kind: 'ok', id: 'net', ms: 2600 });
+  if (auto) retryAt(S.msgs.length - 1);
+});
+function retryAt(idx) {
+  const rec = S.msgs[idx];
+  if (S.busy || !rec) return;
+  if (!navigator.onLine) { offlineToast(); return; }
+  const question = rec.q;
+  while (threadIn.children.length > idx) threadIn.lastElementChild.remove();
+  S.msgs.length = Math.min(S.msgs.length, idx);
+  respond(question);
+}
+
 function submit(text) {
   if (S.busy) { clearJob(); return; }
   text = (text || '').trim() || curSugg();
   if (!text) return;
   if (text.length > MAX_Q) {                     // не отправляем и не показываем в ленте; текст остаётся в поле
-    toast(T().tooLong(text.length, MAX_Q));
+    const n = text.length;
+    toast(() => T().tooLong(n, MAX_Q), { kind: 'err', id: 'len' });
     form.classList.remove('too-long'); void form.offsetWidth; form.classList.add('too-long');
+    q.focus({ preventScroll: true });
+    return;
+  }
+  if (!navigator.onLine) {                       // без сети не отправляем: вопрос остаётся в поле
+    offlineToast();
     q.focus({ preventScroll: true });
     return;
   }
@@ -1007,18 +1187,28 @@ threadIn.addEventListener('click', e => {
     if (target) { target.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'nearest' }); target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); }
   } else if (b.dataset.act === 'copy') {
     const txt = rec && rec.data ? rec.data.answer + (rec.data.assumptions && rec.data.assumptions.length ? '\n\n' + T().assumptions + ': ' + rec.data.assumptions.join('; ') : '') : '';
-    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}).finally(() => {
+    copyText(txt).then(() => {
       b.innerHTML = `<span data-icon="check">${svg('check')}</span>`; b.classList.add('copied'); b.setAttribute('aria-label', T().copied);
       setTimeout(() => { b.innerHTML = `<span data-icon="copy">${svg('copy')}</span>`; b.classList.remove('copied'); b.setAttribute('aria-label', T().copy); }, 1400);
-    });
+    }, () => toast(() => T().copyFail, { kind: 'info', id: 'copy' }));
   } else if (b.dataset.act === 'retry' || b.dataset.act === 'again') {
-    if (S.busy || !rec) return;
-    const question = rec.q;
-    while (threadIn.children.length > idx) threadIn.lastElementChild.remove();
-    S.msgs.length = Math.min(S.msgs.length, idx);
-    respond(question);
+    retryAt(idx);
   }
 });
+
+/* буфер обмена: Clipboard API есть не везде (http, старые WebView) — тогда через execCommand */
+function copyText(s) {
+  const legacy = () => new Promise((res, rej) => {
+    const ta = document.createElement('textarea');
+    ta.value = s; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.append(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    ok ? res() : rej();
+  });
+  if (!s) return Promise.reject();
+  return navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(s).catch(legacy) : legacy();
+}
 
 /* источники: чип показывает только свой шаг, «Как получен ответ» — все шаги */
 function showOnly(det, i) {
@@ -1341,7 +1531,7 @@ function applyLang(l, anim) {
   const lg = $('.lang'); lg.dataset.l = l;
   lg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === l)));
   setBusy(S.busy);
-  renderHist(); renderPage();
+  renderHist(); renderPage(); TST.forEach(tText);
   document.title = route ? `${t[route === 'about' ? 'aboutT' : 'teamT']} · UZEX AI` : t.docTitle;
   if (was !== l || !anim) {
     if (S.view === 'chat') {
@@ -1361,12 +1551,75 @@ document.addEventListener('keydown', e => {
 });
 
 /* =========================================================
+   Демо-панель (/?demo): тосты и карточки ошибок без настоящих сбоев.
+   Сеть эмулируется подменой navigator.onLine и событиями offline/online,
+   поэтому работают те же обработчики, что и в жизни (блок отправки, автоповтор).
+   ========================================================= */
+(() => {
+  let on = false; try { on = new URLSearchParams(location.search).has('demo'); } catch {}
+  if (!on) return;
+  const real = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
+  let simOff = false;
+  try { Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => !simOff && (real ? real.get.call(navigator) : true) }); } catch {}
+  const setNet = off => { if (simOff === off) return; simOff = off; dispatchEvent(new Event(off ? 'offline' : 'online')); };
+  const Q = () => T().sugg[0];
+  const chatWith = msgs => {
+    leavePage(); closeHist(false); clearJob(); S.chat = null; S.msgs = msgs;
+    if (S.view === 'landing') goChat(false); else renderThread();
+  };
+  const DEMO = [
+    ['Нет сети', () => setNet(true)],
+    ['Сеть вернулась', () => simOff ? setNet(false) : toast(() => T().backOn, { kind: 'ok', id: 'net', ms: 2600 })],
+    ['Обрыв → автоповтор', () => { chatWith([{ role: 'u', text: Q() }, { role: 'err', q: Q(), code: 'offline' }]); setNet(true); }],
+    ['Длинный вопрос', () => {
+      let s = ''; while (s.length <= MAX_Q) s += T().sugg[1] + ' ';
+      leavePage(); closeHist(false); clearJob(); q.value = s.trim(); autosize(); submit(q.value);
+    }],
+    ['Не скопировалось', () => toast(() => T().copyFail, { kind: 'info', id: 'copy' })],
+    ['История не сохраняется', () => toast(() => T().noSave, { kind: 'info', id: 'save', ms: 5200 })],
+    ['Все ошибки ответа', () => chatWith(Object.keys(ERR).flatMap(code => [{ role: 'u', text: `${Q()} · ${code}` }, { role: 'err', q: Q(), code }]))],
+    ['Стопка тостов', () => {
+      setNet(true);
+      setTimeout(() => toast(() => T().tooLong(MAX_Q + 140, MAX_Q), { kind: 'err', id: 'len' }), 250);
+      setTimeout(() => toast(() => T().copyFail, { kind: 'info', id: 'copy' }), 500);
+    }],
+  ];
+  const btn = document.createElement('button');
+  btn.className = 'demo-btn'; btn.type = 'button'; btn.textContent = 'Demo';
+  btn.setAttribute('aria-controls', 'demo'); btn.setAttribute('aria-expanded', 'true');
+  $('.top-r').prepend(btn);
+  const panel = document.createElement('section');
+  panel.className = 'demo open'; panel.id = 'demo'; panel.setAttribute('aria-label', 'Демо: ошибки и тосты');
+  panel.innerHTML = `<header class="demo-h"><h2 class="mono">Демо · ошибки и тосты</h2>` +
+    `<button class="ib ib-s" type="button" aria-label="Свернуть"><span data-icon="close">${svg('close')}</span></button></header>` +
+    `<div class="demo-list">${DEMO.map(([l], i) => `<button type="button" data-i="${i}" aria-pressed="false"><kbd>${i + 1}</kbd>${esc(l)}</button>`).join('')}</div>` +
+    `<p class="demo-note">Сеть эмулируется, настоящее соединение не трогаем. Клавиши 1–${DEMO.length} запускают сценарии.</p>`;
+  document.body.append(panel);
+  const toggle = o => { o = o ?? !panel.classList.contains('open'); panel.classList.toggle('open', o); btn.setAttribute('aria-expanded', String(o)); };
+  const go = i => {
+    panel.querySelectorAll('[data-i]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i)));
+    DEMO[i][1]();
+  };
+  btn.addEventListener('click', () => toggle());
+  panel.querySelector('.demo-h .ib').addEventListener('click', () => { toggle(false); btn.focus(); });
+  panel.querySelector('.demo-list').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) go(+b.dataset.i); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && panel.classList.contains('open') && !hist.classList.contains('open')) { toggle(false); return; }
+    const tg = e.target;
+    if (e.ctrlKey || e.metaKey || e.altKey || (tg.closest && tg.closest('textarea, input'))) return;
+    const n = +e.key;
+    if (n >= 1 && n <= DEMO.length) go(n - 1);
+  });
+})();
+
+/* =========================================================
    Старт
    ========================================================= */
 paintIcons();
 applyLang(LS.get('uzex.lang', 'ru') === 'uz' ? 'uz' : 'ru', false);
 // поле собирается сразу, не дожидаясь шрифтов; заголовок ждёт шрифт внутри replayHero
 if (PAGES.includes(location.hash.slice(1))) applyRoute(); else replayHero(true);
+netState(); if (!navigator.onLine) offlineToast();   // открыли страницу уже без сети (из кэша)
 // ссылка вида /?q=вопрос сразу задаёт вопрос
 try { const q0 = new URLSearchParams(location.search).get('q'); if (q0) setTimeout(() => submit(q0), RM ? 0 : 900); } catch {}
 })();

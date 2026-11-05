@@ -69,7 +69,7 @@ TOOLS = [
                 },
                 "followups": {
                     "type": "array", "items": {"type": "string"},
-                    "description": ("2-3 short natural follow-up questions (max ~70 characters each) in the user's language "
+                    "description": ("Exactly 2 short natural follow-up questions (max ~60 characters each) in the user's language "
                                     "and script, that this database CAN answer and that dig deeper into this answer: "
                                     "another period, a breakdown by month/region/buyer, a comparison, the top-N. "
                                     "Written as the user would ask them. For an unanswerable question, suggest close "

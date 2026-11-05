@@ -41,6 +41,7 @@ const BM = {
   warn:  ['....##....','....##....','....##....','....##....','....##....','....##....','..........','..........','....##....','....##....'],
   doc:   ['######..','#....##.','#.....##','#.##...#','#......#','#.####.#','#......#','#.####.#','#......#','########'],
 };
+BM.chart = ['..........','........##','........##','....##..##','....##..##','##..##..##','##..##..##','##..##..##','##########','##########'];
 function svg(name) {
   const m = BM[name]; if (!m) return '';
   let d = '';
@@ -79,7 +80,7 @@ const I18N = {
     phases: ['Читаю вопрос', 'Ищу в реестре сделок', 'Собираю ответ'],
     st: { read: 'Читаю вопрос', search: 'Ищу', sql: 'Считаю', check: 'Сверяю числа с данными', compose: 'Собираю ответ' },
     kinds: { product: 'товар', company: 'компания', broker: 'брокер' },
-    fuH: 'Спросить дальше',
+    fuH: 'Спросить дальше', chartBtn: 'График', srcBtn: 'Источники',
     noData: 'Нет в данных', verified: 'Числа сверены с данными', unverified: 'Не все числа сверены',
     assumptions: 'Условия', how: 'Как получен ответ', search: 'Поиск', sql: 'Запрос', rows: 'строк', found: 'найдено', sec: 'с',
     sugg: [
@@ -168,7 +169,7 @@ const I18N = {
     phases: ['Savolni oʻqiyapman', 'Bitimlar reyestridan qidiryapman', 'Javobni yigʻyapman'],
     st: { read: 'Savolni oʻqiyapman', search: 'Qidiryapman', sql: 'Hisoblayapman', check: 'Raqamlarni tekshiryapman', compose: 'Javobni yigʻyapman' },
     kinds: { product: 'tovar', company: 'kompaniya', broker: 'broker' },
-    fuH: 'Davom ettirish',
+    fuH: 'Davom ettirish', chartBtn: 'Grafik', srcBtn: 'Manbalar',
     noData: 'Maʼlumotlarda yoʻq', verified: 'Raqamlar maʼlumotlar bilan tekshirildi', unverified: 'Barcha raqamlar tekshirilmadi',
     assumptions: 'Shartlar', how: 'Javob qanday olindi', search: 'Qidiruv', sql: 'Soʻrov', rows: 'qator', found: 'topildi', sec: 's',
     sugg: [
@@ -659,9 +660,17 @@ const chIsCancel = c => /cancel|annul/i.test(c) && !/excl|without|non_?cancel|no
 function chartBlock(d, mk) {
   const sp = chartSpec(d); if (!sp) return '';
   const lang = String(d.language || '').startsWith('uz') ? 'uz' : 'ru';
-  mk = Math.min(mk || 0, sp.metrics.length - 1);
+  const INCL = /incl|with_?cancel|_all\b|^all/i;
+  let tm = sp.metrics.filter(m => {
+    const c = sp.cols[m], sib = sp.metrics.filter(o => o !== m && chKind(sp.cols[o]) === chKind(c));
+    if (chIsCancel(c) && sib.some(o => !chIsCancel(sp.cols[o]))) return false;
+    if (INCL.test(c) && sib.some(o => !INCL.test(sp.cols[o]) && !chIsCancel(sp.cols[o]))) return false;
+    return true;
+  }).slice(0, 3);
+  if (!tm.length) tm = sp.metrics.slice(0, 3);
+  mk = Math.min(mk || 0, tm.length - 1);
   const col = i => sp.rows.map(x => isNum(x[i]) ? x[i] : 0);
-  const ci = sp.metrics[mk], vals = col(ci), kind = chKind(sp.cols[ci]);
+  const ci = tm[mk], vals = col(ci), kind = chKind(sp.cols[ci]);
   const same = sp.metrics.filter(m => chKind(sp.cols[m]) === kind);
   // часть целого (аннулированные) — на своей шкале, иначе столбики почти не видны; это подписано
   const ownScale = chIsCancel(sp.cols[ci]) && same.some(m => m !== ci && !chIsCancel(sp.cols[m]));
@@ -670,16 +679,16 @@ function chartBlock(d, mk) {
   let ov = null;
   if (!chIsCancel(sp.cols[ci]) && !/excl|without|non_?cancel|not_?cancel/i.test(sp.cols[ci])) {
     const om = same.find(m => m !== ci && chIsCancel(sp.cols[m]) && col(m).every((v, k) => Math.abs(v) <= Math.abs(vals[k]) + 1e-9));
-    if (om !== undefined) ov = { k: sp.metrics.indexOf(om), vals: col(om) };
+    if (om !== undefined) ov = { name: chName(sp.cols[om], lang), vals: col(om) };
   }
   const seen = new Set();
-  const names = sp.metrics.map(m => { let n = chName(sp.cols[m], lang); if (seen.has(n)) n = sp.cols[m]; seen.add(n); return n; });
-  const tabs = `<div class="ch-tabs">` + sp.metrics.map((m, k) => sp.metrics.length > 1
+  const names = tm.map(m => { let n = chName(sp.cols[m], lang); if (seen.has(n)) n = sp.cols[m]; seen.add(n); return n; });
+  const tabs = `<div class="ch-tabs">` + tm.map((m, k) => tm.length > 1
     ? `<button type="button" class="ch-tab mono" data-act="chm" data-k="${k}" aria-pressed="${k === mk}">${esc(names[k])}</button>`
     : `<span class="ch-tab mono" aria-pressed="true">${esc(names[k])}</span>`).join('') + `</div>`;
-  const legend = ov ? `<div class="ch-leg mono"><span><i class="lg-a"></i>${esc(names[mk])}</span><span><i class="lg-o"></i>${lang === 'uz' ? 'shundan' : 'из них'} ${esc(names[ov.k].toLowerCase())}</span></div>` : '';
+  const legend = ov ? `<div class="ch-leg mono"><span><i class="lg-a"></i>${esc(names[mk])}</span><span><i class="lg-o"></i>${lang === 'uz' ? 'shundan' : 'из них'} ${esc(ov.name.toLowerCase())}</span></div>` : '';
   const seg = k => ov && vals[k] ? `<b style="--o:${(Math.abs(ov.vals[k]) / Math.abs(vals[k]) * 100).toFixed(2)}%"></b>` : '';
-  const tip = k => `${sp.labels[k]}: ${fmtShort(vals[k], lang)}` + (ov ? ` · ${names[ov.k].toLowerCase()} ${fmtShort(ov.vals[k], lang)}` : '');
+  const tip = k => `${sp.labels[k]}: ${fmtShort(vals[k], lang)}` + (ov ? ` · ${ov.name.toLowerCase()} ${fmtShort(ov.vals[k], lang)}` : '');
   let body;
   const n = vals.length;
   const total = vals.reduce((a, v) => a + v, 0);
@@ -715,7 +724,7 @@ function chartBlock(d, mk) {
     return `<div class="m-chart">${tabs}${legend}${body}</div>`;
   }
   if (sp.time) {
-    const every = Math.ceil(n / 10), showV = n <= 16;
+    const every = Math.ceil(n / 10), showV = n <= 8;
     const maxLbl = ownScale ? `<span class="ch-max mono">${lang === 'uz' ? 'oʻz shkalasi' : 'своя шкала'} · ${lang === 'uz' ? 'gacha' : 'до'} ${esc(fmtShort(max, lang))}</span>`
       : showV ? '' : `<span class="ch-max mono">max ${esc(fmtShort(max, lang))}</span>`;
     body = `<div class="ch ch-col${showV ? ' ch-vals' : ''}" style="--n:${n}">${maxLbl}` + vals.map((v, k) =>
@@ -729,22 +738,29 @@ function chartBlock(d, mk) {
   return `<div class="m-chart">${tabs}${legend}${body}</div>`;
 }
 function ansT(d) { return I18N[d && String(d.language || '').startsWith('uz') ? 'uz' : 'ru']; }
+// график открыт сразу, только если о нём просили: динамика, разбивка, доли
+const CH_ASK = /по\s*месяц|по\s*год|по\s*дн|по\s*кварт|динамик|тренд|как\s*менял|по\s*вид|по\s*тип|по\s*форм|по\s*статус|по\s*регион|по\s*област|по\s*категор|по\s*отрасл|по\s*валют|дол[яиюей]|распредел|структур|разбивк|график|oy(lar)?\s*bo|yil(lar)?\s*bo|dinamik|ulush|taqsimot|tur(lar)?i\s*bo|viloyat(lar)?\s*bo|grafik|оy(лар)?\s*бў|йил(лар)?\s*бў|динамика|улуш/i;
 function addTail(m, rec, instant) {
   const d = rec.data, t = ansT(d);
   const steps = (d.steps || []).filter(st => st.tool !== 'guard');
   const badge = !d.answerable ? `<span class="tag ev-b ev-no">${t.noData}</span>`
     : d.verified ? `<span class="tag ev-b ev-ok">✓ ${t.verified}</span>` : `<span class="tag ev-b ev-warn">${t.unverified}</span>`;
+  const ch = chartBlock(d, 0);
+  const open = !!ch && (CH_ASK.test(rec.q || '') || /ch-line|ch-col/.test(ch));
   const tail = document.createElement('div'); tail.className = 'm-tail' + (instant ? ' on' : '');
   tail.innerHTML =
-    chartBlock(d, 0) +
-    `<div class="m-src">${badge}` +
-    steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" aria-pressed="false" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
-    `<span class="tag tag-o ev-time mono">${d.elapsed_s} ${t.sec}</span></div>` +
-    (d.assumptions && d.assumptions.length ? `<p class="m-asm"><span class="mono">${t.assumptions}:</span> ${esc(d.assumptions.join('; '))}</p>` : '') +
-    (steps.length ? `<details class="ev"><summary class="mono">${t.how} · ${steps.length}</summary>${steps.map((st, i) => stepHTML(st, i, t)).join('')}</details>` : '') +
-    (d.followups && d.followups.length ? `<div class="m-fu"><span class="fu-h mono">${t.fuH}</span>${d.followups.map(x => `<button type="button" class="fu-btn" data-act="fu" data-q="${esc(x)}"><span>${esc(x)}</span><span class="fu-ar" data-icon="arrow"></span></button>`).join('')}</div>` : '') +
-    `<div class="m-act"><button class="ib" type="button" data-act="copy" aria-label="${t.copy}" title="${t.copy}"><span data-icon="copy"></span></button>` +
-    `<button class="ib" type="button" data-act="retry" aria-label="${t.retry}" title="${t.retry}"><span data-icon="retry"></span></button></div>`;
+    `<div class="m-bar">${badge}<span class="mb-t mono">${d.elapsed_s} ${t.sec}</span>` +
+    (ch ? `<button type="button" class="mb-btn mono" data-act="tg" data-p="chart" aria-expanded="${open}"><span data-icon="chart"></span>${t.chartBtn}</button>` : '') +
+    (steps.length ? `<button type="button" class="mb-btn mono" data-act="tg" data-p="src" aria-expanded="false"><span data-icon="doc"></span>${t.srcBtn} · ${steps.length}</button>` : '') +
+    `<span class="mb-sp"></span>` +
+    `<button class="ib" type="button" data-act="copy" aria-label="${t.copy}" title="${t.copy}"><span data-icon="copy"></span></button>` +
+    `<button class="ib" type="button" data-act="retry" aria-label="${t.retry}" title="${t.retry}"><span data-icon="retry"></span></button></div>` +
+    (ch ? `<div class="m-pane" data-p="chart"${open ? '' : ' hidden'}>${ch}</div>` : '') +
+    (steps.length ? `<div class="m-pane" data-p="src" hidden>` +
+      (d.assumptions && d.assumptions.length ? `<p class="m-asm"><span class="mono">${t.assumptions}:</span> ${esc(d.assumptions.join('; '))}</p>` : '') +
+      `<div class="m-src">` + steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" aria-pressed="false" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') + `</div>` +
+      `<details class="ev" open><summary class="mono">${t.how} · ${steps.length}</summary>${steps.map((st, i) => stepHTML(st, i, t)).join('')}</details></div>` : '') +
+    (d.followups && d.followups.length ? `<div class="m-fu">${d.followups.slice(0, 2).map(x => `<button type="button" class="fu-btn" data-act="fu" data-q="${esc(x)}"><span>${esc(x)}</span><span class="fu-ar" data-icon="arrow"></span></button>`).join('')}</div>` : '');
   paintIcons(tail);
   m.querySelector('.m-body').append(tail);
   if (!instant) requestAnimationFrame(() => requestAnimationFrame(() => tail.classList.add('on')));
@@ -1330,6 +1346,12 @@ threadIn.addEventListener('click', e => {
   const m = b.closest('.m');
   const idx = [...threadIn.children].indexOf(m);
   const rec = S.msgs[idx];
+  if (b.dataset.act === 'tg') {
+    const pane = m.querySelector(`.m-pane[data-p="${b.dataset.p}"]`); if (!pane) return;
+    pane.hidden = !pane.hidden; b.setAttribute('aria-expanded', String(!pane.hidden));
+    if (!pane.hidden && !RM) pane.animate([{ opacity: 0, transform: 'translateY(-.25rem)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.16,1,.3,1)' });
+    return;
+  }
   if (b.dataset.act === 'fu') {
     if (!S.busy) submit(b.dataset.q);
     return;

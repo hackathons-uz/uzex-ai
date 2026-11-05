@@ -119,7 +119,7 @@ def answer(question: str, history=None, on_event=None) -> dict:
             "answerable": bool(final.get("answerable", False)),
             "language": final.get("language", lang),
             "assumptions": final.get("assumptions", []),
-            "followups": [str(x).strip()[:160] for x in (final.get("followups") or []) if str(x).strip()][:3],
+            "followups": [str(x).strip()[:160] for x in (final.get("followups") or []) if str(x).strip()][:2],
             "verified": verified,
             "note": note,
             "steps": steps,

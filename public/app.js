@@ -1127,9 +1127,19 @@ function autosize() {
 q.addEventListener('input', autosize);
 
 let phI = 0, phTm = 0, phAnim = [];
+/* Порядок подсказок: свой на каждую загрузку (Фишер — Йетс). Списки RU/UZ одной длины,
+   поэтому перестановка общая. Первая подсказка не повторяет первую из прошлого захода. */
+const SUGG_ORD = (() => {
+  const n = I18N.ru.sugg.length, o = [...Array(n).keys()];
+  for (let i = n - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; [o[i], o[j]] = [o[j], o[i]]; }
+  const prev = LS.get('uzex.sugg0', -1);
+  if (n > 1 && o[0] === prev) { const j = 1 + ((rnd() * (n - 1)) | 0); [o[0], o[j]] = [o[j], o[0]]; }
+  LS.set('uzex.sugg0', o[0]);
+  return o;
+})();
 function phStop() { clearTimeout(phTm); phAnim.forEach(a => a.cancel()); phAnim = []; }
 function phRestart() { phStop(); phShow(); }
-function curSugg() { return S.view === 'landing' ? T().sugg[phI % T().sugg.length] : ''; }
+function curSugg() { const s = T().sugg; return S.view === 'landing' ? s[SUGG_ORD[phI % SUGG_ORD.length] % s.length] : ''; }
 function phShow() {
   if (S.view === 'chat') { phT.textContent = T().follow; return; }
   phT.textContent = curSugg();

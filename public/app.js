@@ -79,6 +79,7 @@ const I18N = {
     phases: ['Читаю вопрос', 'Ищу в реестре сделок', 'Собираю ответ'],
     st: { read: 'Читаю вопрос', search: 'Ищу', sql: 'Считаю', check: 'Сверяю числа с данными', compose: 'Собираю ответ' },
     kinds: { product: 'товар', company: 'компания', broker: 'брокер' },
+    fuH: 'Спросить дальше',
     noData: 'Нет в данных', verified: 'Числа сверены с данными', unverified: 'Не все числа сверены',
     assumptions: 'Условия', how: 'Как получен ответ', search: 'Поиск', sql: 'Запрос', rows: 'строк', found: 'найдено', sec: 'с',
     sugg: [
@@ -167,6 +168,7 @@ const I18N = {
     phases: ['Savolni oʻqiyapman', 'Bitimlar reyestridan qidiryapman', 'Javobni yigʻyapman'],
     st: { read: 'Savolni oʻqiyapman', search: 'Qidiryapman', sql: 'Hisoblayapman', check: 'Raqamlarni tekshiryapman', compose: 'Javobni yigʻyapman' },
     kinds: { product: 'tovar', company: 'kompaniya', broker: 'broker' },
+    fuH: 'Davom ettirish',
     noData: 'Maʼlumotlarda yoʻq', verified: 'Raqamlar maʼlumotlar bilan tekshirildi', unverified: 'Barcha raqamlar tekshirilmadi',
     assumptions: 'Shartlar', how: 'Javob qanday olindi', search: 'Qidiruv', sql: 'Soʻrov', rows: 'qator', found: 'topildi', sec: 's',
     sugg: [
@@ -248,7 +250,7 @@ function slimData(d) {                            // таблицы режем, 
   return { ...d, steps: (d.steps || []).map(st => {
     const r = st.result || {};
     const out = { ...st, result: { ...r } };
-    if (r.rows) out.result.rows = r.rows.slice(0, 20);
+    if (r.rows) out.result.rows = r.rows.slice(0, 60);
     if (r.candidates) out.result.candidates = r.candidates.slice(0, 8);
     return out;
   }) };
@@ -588,6 +590,76 @@ function stepHTML(st, i, t) {
     `<pre class="ev-sql">${esc(st.query || '')}</pre>` +
     (r.error ? `<p class="ev-err">${esc(r.error)}</p>` : tableHTML(r.columns || [], r.rows || [], 20)) + `</div>`;
 }
+/* ---------- график из строк последнего SQL-запроса: рисуется в браузере, без задержки ---------- */
+const CH_TIME = /^(year|month|ym|period|date|deal_date|quarter|week|day|yil|oy|год|месяц|период)$/i;
+const CH_ID = /(^|_)(inn|stir|id|code)$/i;
+const isNum = v => typeof v === 'number' && isFinite(v);
+function chartSpec(d) {
+  const steps = (d.steps || []).filter(st => st.tool === 'run_sql' && st.result && !st.result.error);
+  let best = null;
+  for (let k = steps.length - 1; k >= 0; k--) {
+    const cols = steps[k].result.columns || [], rows = steps[k].result.rows || [];
+    if (rows.length < 2 || rows.length > 60) continue;
+    const skip = new Set(); let labelOf, time = false;
+    const yi = cols.findIndex(c => /^(year|yil)$/i.test(c)), mi = cols.findIndex(c => /^(month|oy)$/i.test(c));
+    if (yi >= 0 && mi >= 0 && rows.every(x => isNum(x[yi]) && isNum(x[mi]))) {
+      labelOf = x => `${x[yi]}-${String(x[mi]).padStart(2, '0')}`; time = true; skip.add(yi); skip.add(mi);
+    } else {
+      let li = cols.findIndex(c => CH_TIME.test(c));
+      if (li >= 0) time = true;
+      else li = cols.findIndex((c, i) => !CH_ID.test(c) && rows.every(x => typeof x[i] === 'string'));
+      if (li < 0) continue;
+      if (rows.every(x => /^\d{4}(-\d{2}){0,2}$/.test(String(x[li])))) time = true;
+      labelOf = x => String(x[li]); skip.add(li);
+    }
+    const metrics = cols.map((c, i) => i).filter(i => !skip.has(i) && !CH_ID.test(cols[i]) && !CH_TIME.test(cols[i]) &&
+      rows.every(x => x[i] === null || isNum(x[i])) && rows.some(x => isNum(x[i]) && x[i] !== 0));
+    if (!metrics.length) continue;
+    const sp = { time, labels: rows.map(labelOf), cols, rows, metrics };
+    if (time) return sp;            // динамика важнее любого другого запроса
+    if (!best) best = sp;
+  }
+  return best;
+}
+const CH_L = {
+  ru: { cancPct: 'Доля аннул., %', canc: 'Аннулировано', excl: ' · без аннул.', price: 'Цена', pct: 'Доля, %', vol: 'Объём', sum: 'Сумма', deals: 'Сделки', uzs: ', сум', usd: ', USD' },
+  uz: { cancPct: 'Bekor ulushi, %', canc: 'Bekor qilingan', excl: ' · bekorsiz', price: 'Narx', pct: 'Ulush, %', vol: 'Hajm', sum: 'Summa', deals: 'Bitimlar', uzs: ', soʻm', usd: ', USD' },
+};
+function chName(c, lang) {
+  const L = CH_L[lang], excl = /excl|without|non_?cancel|not_?cancel|_net\b|^net/i.test(c);
+  if (!excl && /cancel|annul/i.test(c)) return /pct|share|percent/i.test(c) ? L.cancPct : L.canc;
+  const base = /price/i.test(c) ? L.price : /pct|share|percent/i.test(c) ? L.pct : /volume|tonn|hajm/i.test(c) ? L.vol
+    : /amount|sum|turnover|total|oborot|uzs|usd/i.test(c) ? L.sum : /deal|count|^n$|cnt|bitim/i.test(c) ? L.deals : null;
+  if (!base) return c;
+  return base + (/usd/i.test(c) ? L.usd : /uzs/i.test(c) ? L.uzs : '') + (excl ? L.excl : '');
+}
+function fmtShort(v, lang) {
+  try { return new Intl.NumberFormat(lang === 'uz' ? 'uz-Latn-UZ' : 'ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(v); }
+  catch { return String(v); }
+}
+function chartBlock(d, mk) {
+  const sp = chartSpec(d); if (!sp) return '';
+  const lang = String(d.language || '').startsWith('uz') ? 'uz' : 'ru';
+  mk = Math.min(mk || 0, sp.metrics.length - 1);
+  const ci = sp.metrics[mk], vals = sp.rows.map(x => isNum(x[ci]) ? x[ci] : 0);
+  const max = Math.max(...vals.map(Math.abs)) || 1;
+  const seen = new Set();
+  const names = sp.metrics.map(m => { let n = chName(sp.cols[m], lang); if (seen.has(n)) n = sp.cols[m]; seen.add(n); return n; });
+  const tabs = `<div class="ch-tabs">` + sp.metrics.map((m, k) => sp.metrics.length > 1
+    ? `<button type="button" class="ch-tab mono" data-act="chm" data-k="${k}" aria-pressed="${k === mk}">${esc(names[k])}</button>`
+    : `<span class="ch-tab mono" aria-pressed="true">${esc(names[k])}</span>`).join('') + `</div>`;
+  let body;
+  if (sp.time) {
+    const n = vals.length, every = Math.ceil(n / 10);
+    body = `<div class="ch ch-col" style="--n:${n}">` + vals.map((v, k) =>
+      `<div class="ch-c" style="--h:${(Math.abs(v) / max * 100).toFixed(2)}%" data-tip="${esc(sp.labels[k])}: ${esc(fmtShort(v, lang))}"><i></i>` +
+      `<span class="ch-x mono">${k % every === 0 || k === n - 1 ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
+  } else {
+    body = `<div class="ch ch-bar">` + vals.map((v, k) =>
+      `<div class="ch-r"><span class="ch-l" title="${esc(sp.labels[k])}">${esc(sp.labels[k])}</span><span class="ch-b"><i style="--w:${(Math.abs(v) / max * 100).toFixed(2)}%"></i></span><span class="ch-v mono">${esc(fmtShort(v, lang))}</span></div>`).join('') + `</div>`;
+  }
+  return `<div class="m-chart">${tabs}${body}</div>`;
+}
 function ansT(d) { return I18N[d && String(d.language || '').startsWith('uz') ? 'uz' : 'ru']; }
 function addTail(m, rec, instant) {
   const d = rec.data, t = ansT(d);
@@ -596,11 +668,13 @@ function addTail(m, rec, instant) {
     : d.verified ? `<span class="tag ev-b ev-ok">✓ ${t.verified}</span>` : `<span class="tag ev-b ev-warn">${t.unverified}</span>`;
   const tail = document.createElement('div'); tail.className = 'm-tail' + (instant ? ' on' : '');
   tail.innerHTML =
+    chartBlock(d, 0) +
     `<div class="m-src">${badge}` +
     steps.map((st, i) => `<button type="button" class="tag tag-o ev-chip" aria-pressed="false" data-act="ev" data-i="${i}" title="${esc(srcLabel(st, t))}"><span data-icon="doc"></span>${esc(cut1(srcLabel(st, t), 46))}</button>`).join('') +
     `<span class="tag tag-o ev-time mono">${d.elapsed_s} ${t.sec}</span></div>` +
     (d.assumptions && d.assumptions.length ? `<p class="m-asm"><span class="mono">${t.assumptions}:</span> ${esc(d.assumptions.join('; '))}</p>` : '') +
     (steps.length ? `<details class="ev"><summary class="mono">${t.how} · ${steps.length}</summary>${steps.map((st, i) => stepHTML(st, i, t)).join('')}</details>` : '') +
+    (d.followups && d.followups.length ? `<div class="m-fu"><span class="fu-h mono">${t.fuH}</span>${d.followups.map(x => `<button type="button" class="fu-btn" data-act="fu" data-q="${esc(x)}"><span>${esc(x)}</span><span class="fu-ar" data-icon="arrow"></span></button>`).join('')}</div>` : '') +
     `<div class="m-act"><button class="ib" type="button" data-act="copy" aria-label="${t.copy}" title="${t.copy}"><span data-icon="copy"></span></button>` +
     `<button class="ib" type="button" data-act="retry" aria-label="${t.retry}" title="${t.retry}"><span data-icon="retry"></span></button></div>`;
   paintIcons(tail);
@@ -1178,6 +1252,15 @@ threadIn.addEventListener('click', e => {
   const m = b.closest('.m');
   const idx = [...threadIn.children].indexOf(m);
   const rec = S.msgs[idx];
+  if (b.dataset.act === 'fu') {
+    if (!S.busy) submit(b.dataset.q);
+    return;
+  }
+  if (b.dataset.act === 'chm') {
+    const box = m.querySelector('.m-chart'); if (!box || !rec || !rec.data) return;
+    box.outerHTML = chartBlock(rec.data, +b.dataset.k);
+    return;
+  }
   if (b.dataset.act === 'ev') {
     const det = m.querySelector('details.ev'); if (!det) return;
     if (det.open && det.dataset.only === b.dataset.i) { det.open = false; return; }   // тот же источник ещё раз — свернуть

@@ -70,12 +70,12 @@ def clean_final(args: dict) -> dict:
     head, tail = text[:m.start()], text[m.start():]
     for name, raw in re.findall(r'<parameter name="(\w+)">(.*?)(?=<parameter name=|</parameter>|$)', tail, re.S):
         raw = _LEAK.sub("", raw).strip()
-        if name == "assumptions" and not args.get("assumptions"):
+        if name in ("assumptions", "followups") and not args.get(name):
             try:
                 val = json.loads(raw)
-                args["assumptions"] = [str(x) for x in val] if isinstance(val, list) else [str(val)]
+                args[name] = [str(x) for x in val] if isinstance(val, list) else [str(val)]
             except ValueError:
-                args["assumptions"] = [raw] if raw else []
+                args[name] = [raw] if raw else []
         elif name == "answerable" and raw.lower() in ("true", "false"):
             args["answerable"] = raw.lower() == "true"
     args["answer"] = _LEAK.sub("", head).strip()
@@ -119,6 +119,7 @@ def answer(question: str, history=None, on_event=None) -> dict:
             "answerable": bool(final.get("answerable", False)),
             "language": final.get("language", lang),
             "assumptions": final.get("assumptions", []),
+            "followups": [str(x).strip()[:160] for x in (final.get("followups") or []) if str(x).strip()][:3],
             "verified": verified,
             "note": note,
             "steps": steps,

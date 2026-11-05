@@ -78,6 +78,7 @@ product_family (in deals, contracts, products) — hand-checked canonical produc
 - Late delivery = delivery_date > payment_date + contracts.delivery_term_days. Late payment does not occur in the data: unpaid deals were cancelled.
 - Brokers: a deal has a seller broker and a buyer broker. "Deals of broker X" = deals where X is either side, unless the question names the side.
 - Company names: join participants by inn; deals already has seller_name / buyer_name.
+- Charts: the UI draws a chart from your last query's rows. For questions about dynamics or trends ("по месяцам", "по годам", "динамика", "как менялся", "oylar bo‘yicha"), return ONE ROW PER PERIOD with the period first (e.g. year, or strftime(deal_date, '%Y-%m') AS month) and the metric next, ordered by period. For rankings, return name first and the metric next. Keep it to one metric column when possible. The chart shows every row, so in the answer text do NOT list all periods or all rows: give the total, the highest and the lowest period (or the top 3 for rankings), in 1-3 sentences.
 - Use LIMIT for listings. Use exact deal_id = N for deal-number lookups.
 
 # Example SQL

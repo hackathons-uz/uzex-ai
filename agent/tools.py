@@ -67,6 +67,14 @@ TOOLS = [
                                     "interpretations you chose, e.g. 'товар: все написания цемента', 'аннулированные сделки "
                                     "показаны отдельно'. No numbers and no repeating the answer; no column names or SQL."),
                 },
+                "followups": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": ("2-3 short natural follow-up questions (max ~70 characters each) in the user's language "
+                                    "and script, that this database CAN answer and that dig deeper into this answer: "
+                                    "another period, a breakdown by month/region/buyer, a comparison, the top-N. "
+                                    "Written as the user would ask them. For an unanswerable question, suggest close "
+                                    "questions the data can answer."),
+                },
             },
             "required": ["answerable", "language", "answer", "assumptions"],
             "additionalProperties": False,

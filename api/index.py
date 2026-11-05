@@ -1,5 +1,8 @@
 """HTTP API. Vercel serves this as a Python function; locally: .venv/bin/uvicorn api.index:app --port 8000
-(locally it also serves the UI from public/ at http://127.0.0.1:8000/)."""
+(locally it also serves the UI from public/ at http://127.0.0.1:8000/).
+
+Monitoring: every request prints one JSON line with key "chat_log" (Vercel -> Logs);
+errors and traces go to Sentry when the SENTRY_DSN environment variable is set."""
 import json
 import os
 import queue

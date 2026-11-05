@@ -600,22 +600,30 @@ function chartSpec(d) {
   for (let k = steps.length - 1; k >= 0; k--) {
     const cols = steps[k].result.columns || [], rows = steps[k].result.rows || [];
     if (rows.length < 2 || rows.length > 60) continue;
-    const skip = new Set(); let labelOf, time = false;
+    const skip = new Set(); let labelOf, time = false, lcol = '';
     const yi = cols.findIndex(c => /^(year|yil)$/i.test(c)), mi = cols.findIndex(c => /^(month|oy)$/i.test(c));
     if (yi >= 0 && mi >= 0 && rows.every(x => isNum(x[yi]) && isNum(x[mi]))) {
-      labelOf = x => `${x[yi]}-${String(x[mi]).padStart(2, '0')}`; time = true; skip.add(yi); skip.add(mi);
+      labelOf = x => `${x[yi]}-${String(x[mi]).padStart(2, '0')}`; time = true; skip.add(yi); skip.add(mi); lcol = 'month';
     } else {
       let li = cols.findIndex(c => CH_TIME.test(c));
       if (li >= 0) time = true;
       else li = cols.findIndex((c, i) => !CH_ID.test(c) && rows.every(x => typeof x[i] === 'string'));
       if (li < 0) continue;
       if (rows.every(x => /^\d{4}(-\d{2}){0,2}$/.test(String(x[li])))) time = true;
-      labelOf = x => String(x[li]); skip.add(li);
+      labelOf = x => String(x[li]); skip.add(li); lcol = cols[li];
     }
+    const labels = rows.map(labelOf);
+    if (new Set(labels).size !== labels.length) continue;          // повторы (месяц × единица) — график соврёт
     const metrics = cols.map((c, i) => i).filter(i => !skip.has(i) && !CH_ID.test(cols[i]) && !CH_TIME.test(cols[i]) &&
       rows.every(x => x[i] === null || isNum(x[i])) && rows.some(x => isNum(x[i]) && x[i] !== 0));
+    // строки — разные единицы измерения или валюты: объём и цену между ними сравнивать нельзя
+    const UNITS = /^(тонна|литр|килограмм|штука|куб\.метр|кв\.метр|метр)$/i;
+    if (/^unit$/i.test(lcol) || labels.every(l => UNITS.test(l)))
+      for (let z = metrics.length - 1; z >= 0; z--) { if (/^(vol|price)/.test(chKind(cols[metrics[z]]))) metrics.splice(z, 1); }
+    if (/^currency$/i.test(lcol) || labels.every(l => /^(UZS|USD)$/i.test(l)))
+      for (let z = metrics.length - 1; z >= 0; z--) { const kd = chKind(cols[metrics[z]]); if (kd === 'price' || (kd === 'sum' && !/uzs/i.test(cols[metrics[z]]))) metrics.splice(z, 1); }
     if (!metrics.length) continue;
-    const sp = { time, labels: rows.map(labelOf), cols, rows, metrics };
+    const sp = { time, labels, lcol, cols, rows, metrics };
     if (time) { if (!bestTime || rows.length > bestTime.rows.length) bestTime = sp; }   // динамика: самый подробный ряд
     else if (!best) best = sp;
   }
@@ -673,14 +681,47 @@ function chartBlock(d, mk) {
   const seg = k => ov && vals[k] ? `<b style="--o:${(Math.abs(ov.vals[k]) / Math.abs(vals[k]) * 100).toFixed(2)}%"></b>` : '';
   const tip = k => `${sp.labels[k]}: ${fmtShort(vals[k], lang)}` + (ov ? ` · ${names[ov.k].toLowerCase()} ${fmtShort(ov.vals[k], lang)}` : '');
   let body;
+  const n = vals.length;
+  const total = vals.reduce((a, v) => a + v, 0);
+  // круговая: части одного целого (виды торгов, формы, статусы, единицы, категории), 2–6 долей, только сумма или счёт
+  const pieOK = !sp.time && n >= 2 && n <= 6 && /^(cnt|sum)/.test(kind) && vals.every(v => v >= 0) && total > 0 &&
+    !/name|buyer|seller|broker|company|inn|product_full|^product$/i.test(sp.lcol) &&
+    (/type|form|status|currency|category|group|industry|unit|kind|role|activity|vat|segment|side/i.test(sp.lcol) ||
+     sp.labels.every(l => /аукцион|спот|форвард|фьючерс|внутренн|экспорт|исполнен|аннулирован|оплачен|заключен|новый|подписан|^(UZS|USD)$|тонна|литр|килограмм|штука|метр/i.test(l)));
+  if (pieOK) {
+    const PIE = ['var(--neon)', 'var(--blue-l)', 'var(--mint)', 'var(--peri)', 'var(--green)', 'var(--blue)'];
+    let acc = 0;
+    const arcs = vals.map((v, k) => {
+      const f = v / total * 100, a = `<circle r="15.9155" cx="21" cy="21" pathLength="100" style="stroke:${PIE[k]};stroke-dasharray:${f.toFixed(3)} ${(100 - f).toFixed(3)};stroke-dashoffset:${(25 - acc).toFixed(3)}"><title>${esc(sp.labels[k])}: ${esc(fmtShort(v, lang))} · ${(f).toFixed(1)}%</title></circle>`;
+      acc += f; return a;
+    }).join('');
+    body = `<div class="ch ch-pie"><svg viewBox="0 0 42 42" class="pie" aria-hidden="true">${arcs}</svg>` +
+      `<div class="pie-c"><span class="pie-v">${esc(fmtShort(total, lang))}</span><span class="pie-l mono">${lang === 'uz' ? 'jami' : 'всего'}</span></div>` +
+      `<ul class="pie-leg">` + vals.map((v, k) => `<li><i style="background:${PIE[k]}"></i><span class="pl-n">${esc(sp.labels[k])}</span><span class="pl-v mono">${esc(fmtShort(v, lang))}</span><span class="pl-p mono">${(v / total * 100).toFixed(1)}%</span></li>`).join('') + `</ul></div>`;
+    return `<div class="m-chart">${tabs}${body}</div>`;
+  }
+  // линия: длинный ряд по времени (больше 24 точек), столбики стали бы нитками
+  if (sp.time && n > 24) {
+    const every = Math.ceil(n / 10);
+    const pts = a => a.map((v, k) => `${((k + .5) / n * 100).toFixed(3)},${(100 - Math.abs(v) / max * 100).toFixed(3)}`).join(' ');
+    const area = `0,100 ${pts(vals)} 100,100`;
+    const maxLbl = `<span class="ch-max mono">${ownScale ? (lang === 'uz' ? 'oʻz shkalasi · ' : 'своя шкала · ') : ''}max ${esc(fmtShort(max, lang))}</span>`;
+    body = `<div class="ch ch-col ch-line" style="--n:${n}">${maxLbl}` +
+      `<div class="ln-w"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">` +
+      `<polygon class="ln-a" points="${area}"/><polyline class="ln-l" points="${pts(vals)}"/>` +
+      (ov ? `<polyline class="ln-o" points="${pts(ov.vals)}"/>` : '') + `</svg></div>` +
+      vals.map((v, k) => `<div class="ch-c" style="--h:${(Math.abs(v) / max * 100).toFixed(2)}%" data-tip="${esc(tip(k))}">` +
+        `<span class="ch-x mono">${k % every === 0 || (k === n - 1 && (n - 1) % every >= Math.max(1, every - 1)) ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
+    return `<div class="m-chart">${tabs}${legend}${body}</div>`;
+  }
   if (sp.time) {
-    const n = vals.length, every = Math.ceil(n / 10), showV = n <= 16;
+    const every = Math.ceil(n / 10), showV = n <= 16;
     const maxLbl = ownScale ? `<span class="ch-max mono">${lang === 'uz' ? 'oʻz shkalasi' : 'своя шкала'} · ${lang === 'uz' ? 'gacha' : 'до'} ${esc(fmtShort(max, lang))}</span>`
       : showV ? '' : `<span class="ch-max mono">max ${esc(fmtShort(max, lang))}</span>`;
     body = `<div class="ch ch-col${showV ? ' ch-vals' : ''}" style="--n:${n}">${maxLbl}` + vals.map((v, k) =>
       `<div class="ch-c" style="--h:${(Math.abs(v) / max * 100).toFixed(2)}%" data-tip="${esc(tip(k))}"><i>${seg(k)}</i>` +
       (showV ? `<span class="ch-cv mono">${esc(fmtShort(v, lang))}</span>` : '') +
-      `<span class="ch-x mono">${k % every === 0 || (k === n - 1 && (n - 1) % every >= Math.ceil(every / 2)) ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
+      `<span class="ch-x mono">${k % every === 0 || (k === n - 1 && (n - 1) % every >= Math.max(1, every - 1)) ? esc(sp.labels[k]) : ''}</span></div>`).join('') + `</div>`;
   } else {
     body = `<div class="ch ch-bar">` + (ownScale ? `<span class="ch-max ch-max-bar mono">${lang === 'uz' ? 'oʻz shkalasi' : 'своя шкала'}</span>` : '') + vals.map((v, k) =>
       `<div class="ch-r" title="${esc(tip(k))}"><span class="ch-l">${esc(sp.labels[k])}</span><span class="ch-b"><i style="--w:${(Math.abs(v) / max * 100).toFixed(2)}%">${seg(k)}</i></span><span class="ch-v mono">${esc(fmtShort(v, lang))}</span></div>`).join('') + `</div>`;
